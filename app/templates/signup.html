@@ -6,7 +6,7 @@
 
     <h2>Create Account</h2>
 
-    <form method="POST">
+    <form method="POST" enctype="multipart/form-data">
 
         <label>Full Name</label>
 
@@ -47,6 +47,12 @@
 
         </select>
 
+        <div id="certificate-field">
+            <label>Trainer Certificate</label>
+            <input type="file" name="certificate" accept=".pdf,.jpg,.jpeg,.png">
+            <small>Required for trainer accounts. An admin will check it before approval.</small>
+        </div>
+
         <button type="submit">
             Create Account
         </button>
@@ -54,5 +60,20 @@
     </form>
 
 </div>
+
+<script>
+    const roleSelect = document.getElementById("role");
+    const certificateField = document.getElementById("certificate-field");
+    const certificateInput = certificateField.querySelector("input");
+
+    function updateCertificateField() {
+        const isTrainer = roleSelect.value === "trainer";
+        certificateField.hidden = !isTrainer;
+        certificateInput.required = isTrainer;
+    }
+
+    roleSelect.addEventListener("change", updateCertificateField);
+    updateCertificateField();
+</script>
 
 {% endblock %}

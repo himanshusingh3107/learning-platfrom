@@ -327,19 +327,51 @@ def toggle_trainer_follow(trainer_id):
 
 @bp.route("/admin/users")
 def admin_users():
-    if current_user.role != "admin":
+    if not current_user.is_authenticated or current_user.role != "admin":
         flash("Unauthorized access.", "danger")
-        return redirect(url_for("main.dashboard"))
+        return redirect(url_for("auth.login"))
 
-    users = User.query.all()
+    users = User.query.order_by(User.is_active.asc(), User.name.asc()).all()
     return render_template("admin_users.html", users=users)
+
+
+@bp.route("/admin/approve-trainer/<int:user_id>", methods=["POST"])
+def approve_trainer(user_id):
+    if not current_user.is_authenticated or current_user.role != "admin":
+        flash("Unauthorized action.", "danger")
+        return redirect(url_for("auth.login"))
+
+    trainer = User.query.filter_by(id=user_id, role="trainer").first_or_404()
+    trainer.is_active = True
+    db.session.commit()
+    flash(f"Trainer '{trainer.name}' was approved.", "success")
+    return redirect(url_for("main.admin_users"))
+
+
+@bp.route("/admin/certificate/<int:user_id>")
+def trainer_certificate(user_id):
+    if not current_user.is_authenticated or current_user.role != "admin":
+        flash("Unauthorized access.", "danger")
+        return redirect(url_for("auth.login"))
+
+    trainer = User.query.filter_by(id=user_id, role="trainer").first_or_404()
+    if not trainer.certificate_filename:
+        flash("This trainer has not uploaded a certificate.", "warning")
+        return redirect(url_for("main.admin_users"))
+
+    return send_from_directory(
+        current_app.config["CERTIFICATE_UPLOAD_FOLDER"],
+        trainer.certificate_filename,
+        as_attachment=False,
+        download_name=trainer.certificate_original_filename
+    )
 
 
 @bp.route("/admin/delete-user/<int:user_id>", methods=["POST"])
 def delete_user(user_id):
-    if current_user.role != "admin":
+    if not current_user.is_authenticated or current_user.role != "admin":
         flash("Unauthorized action.", "danger")
-        return redirect(url_for("main.dashboard"))
+        return redirect(url_for("auth.login"))
 
     if current_user.id == user_id:
         flash("You cannot delete your own account.", "warning")
@@ -397,8 +429,8 @@ def upload_photo(course_id):
             return redirect(request.url)
 
         if file and allowed_file(file.filename):
-            filename = secure_filename(file.filename)
-            unique_filename = f"{current_user.id}_{int(datetime.utcnow().timestamp())}_{filename}"
+            extension = file.filename.rsplit(".", 1)[1].lower()
+            unique_filename = f"{current_user.id}_{uuid.uuid4().hex}.{extension}"
 
             upload_dir = current_app.config["UPLOAD_FOLDER"]
             os.makedirs(upload_dir, exist_ok=True)

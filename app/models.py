@@ -42,6 +42,9 @@ class User(db.Model):
         nullable=True
     )
 
+    certificate_filename = db.Column(db.String(255), nullable=True)
+    certificate_original_filename = db.Column(db.String(255), nullable=True)
+
     location = db.Column(db.String(120), nullable=True)
     interests = db.Column(db.String(500), nullable=True)
 

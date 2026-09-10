@@ -57,3 +57,10 @@ class Config:
         "uploads",
         "profiles"
     )
+
+    CERTIFICATE_UPLOAD_FOLDER = os.path.join(
+        os.path.dirname(__file__),
+        "app",
+        "uploads",
+        "certificates"
+    )

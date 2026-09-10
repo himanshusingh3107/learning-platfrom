@@ -75,6 +75,24 @@ def _upgrade_existing_database():
                     )
                 )
 
+        if "certificate_filename" not in columns:
+            with db.engine.begin() as connection:
+                connection.execute(
+                    text(
+                        "ALTER TABLE user "
+                        "ADD COLUMN certificate_filename VARCHAR(255)"
+                    )
+                )
+
+        if "certificate_original_filename" not in columns:
+            with db.engine.begin() as connection:
+                connection.execute(
+                    text(
+                        "ALTER TABLE user "
+                        "ADD COLUMN certificate_original_filename VARCHAR(255)"
+                    )
+                )
+
         if "user_code" not in columns:
             with db.engine.begin() as connection:
                 connection.execute(

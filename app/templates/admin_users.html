@@ -15,6 +15,8 @@
         <th>User ID</th>
         <th>Email</th>
         <th>Role</th>
+        <th>Status</th>
+        <th>Certificate</th>
         <th>Action</th>
     </tr>
 
@@ -31,6 +33,35 @@
         <td>{{ user.role }}</td>
 
         <td>
+            {% if user.role == "trainer" and not user.is_active %}
+                Waiting for approval
+            {% elif user.is_active %}
+                Active
+            {% else %}
+                Inactive
+            {% endif %}
+        </td>
+
+        <td>
+            {% if user.role == "trainer" and user.certificate_filename %}
+                <a href="{{ url_for('main.trainer_certificate', user_id=user.id) }}" target="_blank">
+                    View certificate
+                </a>
+            {% else %}
+                -
+            {% endif %}
+        </td>
+
+        <td>
+            {% if user.role == "trainer" and not user.is_active %}
+            <form method="POST" action="{{ url_for(
+                'main.approve_trainer',
+                user_id=user.id
+            ) }}">
+                <button type="submit">Approve</button>
+            </form>
+            {% endif %}
+
             {% if user.role != "admin" %}
             <form method="POST" action="{{ url_for(
                 'main.delete_user',
