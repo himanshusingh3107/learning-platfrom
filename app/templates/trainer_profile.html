@@ -8,7 +8,7 @@
 
     <div class="profile-preview">
         {% if trainer.profile_photo %}
-            <img src="{{ url_for('main.profile_photo', filename=trainer.profile_photo) }}" alt="{{ trainer.name }} profile photo">
+            <img src="{{ url_for('main.profile_photo', filename=trainer.profile_photo, v=trainer.profile_photo) }}" alt="{{ trainer.name }} profile photo">
         {% else %}
             <span aria-hidden="true">&#128100;</span>
         {% endif %}

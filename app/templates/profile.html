@@ -14,7 +14,7 @@
 
     <div class="profile-preview">
         {% if user.profile_photo %}
-            <img src="{{ url_for('main.profile_photo', filename=user.profile_photo) }}" alt="Your profile photo">
+            <img src="{{ url_for('main.profile_photo', filename=user.profile_photo, v=user.profile_photo) }}" alt="Your profile photo">
         {% else %}
             <span aria-hidden="true">&#128100;</span>
         {% endif %}

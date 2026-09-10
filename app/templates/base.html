@@ -23,7 +23,7 @@
         {% if current_user.is_authenticated %}
             <a class="profile-link" href="{{ url_for('main.profile') }}" title="Open profile" aria-label="Open profile">
                 {% if current_user.profile_photo %}
-                    <img src="{{ url_for('main.profile_photo', filename=current_user.profile_photo) }}" alt="Profile photo">
+                    <img src="{{ url_for('main.profile_photo', filename=current_user.profile_photo, v=current_user.profile_photo) }}" alt="Profile photo">
                 {% else %}
                     <span aria-hidden="true">&#128100;</span>
                 {% endif %}

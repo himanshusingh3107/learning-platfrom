@@ -63,7 +63,7 @@
             <a class="trainer-card" href="{{ url_for('main.trainer_profile', trainer_id=trainer.id) }}">
                 <div class="trainer-avatar">
                     {% if trainer.profile_photo %}
-                        <img src="{{ url_for('main.profile_photo', filename=trainer.profile_photo) }}" alt="{{ trainer.name }} profile photo">
+                        <img src="{{ url_for('main.profile_photo', filename=trainer.profile_photo, v=trainer.profile_photo) }}" alt="{{ trainer.name }} profile photo">
                     {% else %}
                         <span aria-hidden="true">&#128100;</span>
                     {% endif %}

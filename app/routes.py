@@ -140,6 +140,10 @@ def index():
 
 @bp.route("/dashboard")
 def dashboard():
+    if not current_user.is_authenticated:
+        flash("Please log in to open your dashboard.", "warning")
+        return redirect(url_for("auth.login"))
+
     history = UserActivity.query.filter(
         UserActivity.user_id == current_user.id,
         UserActivity.activity_type.in_(["watch", "download"]),
@@ -160,6 +164,10 @@ def dashboard():
 
 @bp.route("/dashboard/history")
 def history():
+    if not current_user.is_authenticated:
+        flash("Please log in to view your history.", "warning")
+        return redirect(url_for("auth.login"))
+
     history_items = UserActivity.query.filter(
         UserActivity.user_id == current_user.id,
         UserActivity.activity_type.in_(["watch", "download"]),
@@ -194,6 +202,11 @@ def delete_history_item(activity_id):
 
 @bp.route("/profile", methods=["GET", "POST"])
 def profile():
+    user = current_user.user
+    if user is None:
+        flash("Please log in to open your profile.", "warning")
+        return redirect(url_for("auth.login"))
+
     if request.method == "POST":
         name = request.form.get("name", "").strip()
         photo = request.files.get("photo")
@@ -202,13 +215,13 @@ def profile():
             flash("Name is required and must be 100 characters or fewer.", "danger")
             return redirect(url_for("main.profile"))
 
-        current_user.name = name
-        current_user.location = request.form.get("location", "").strip()[:120] or None
-        current_user.interests = request.form.get("interests", "").strip()[:500] or None
-        old_photo = current_user.profile_photo
+        user.name = name
+        user.location = request.form.get("location", "").strip()[:120] or None
+        user.interests = request.form.get("interests", "").strip()[:500] or None
+        old_photo = user.profile_photo
 
         if request.form.get("remove_photo") == "yes":
-            current_user.profile_photo = None
+            user.profile_photo = None
 
         if photo and photo.filename:
             extension = photo.filename.rsplit(".", 1)[-1].lower()
@@ -217,11 +230,15 @@ def profile():
                 return redirect(url_for("main.profile"))
 
             os.makedirs(current_app.config["PROFILE_UPLOAD_FOLDER"], exist_ok=True)
-            filename = f"{current_user.id}_{uuid.uuid4().hex}.{extension}"
+            filename = f"{user.id}_{uuid.uuid4().hex}.{extension}"
             photo.save(os.path.join(current_app.config["PROFILE_UPLOAD_FOLDER"], filename))
-            current_user.profile_photo = filename
+            user.profile_photo = filename
 
-        if old_photo and old_photo != current_user.profile_photo:
+        photo_in_use = User.query.filter(
+            User.profile_photo == old_photo,
+            User.id != user.id
+        ).first()
+        if old_photo and old_photo != current_user.profile_photo and not photo_in_use:
             old_photo_path = os.path.join(
                 current_app.config["PROFILE_UPLOAD_FOLDER"],
                 old_photo
@@ -241,7 +258,7 @@ def profile():
 
     return render_template(
         "profile.html",
-        user=current_user,
+        user=user,
         follower_count=follower_count
     )
 
@@ -270,10 +287,12 @@ def toggle_material_like(material_id):
 
 @bp.route("/profile/photo/<filename>")
 def profile_photo(filename):
-    return send_from_directory(
+    response = send_from_directory(
         current_app.config["PROFILE_UPLOAD_FOLDER"],
         filename
     )
+    response.headers["Cache-Control"] = "no-store"
+    return response
 
 
 @bp.route("/trainer/<int:trainer_id>")
