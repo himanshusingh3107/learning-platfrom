@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="page-heading history-page-heading">
+    <p class="eyebrow">Your activity</p>
+    <h1>Learning History</h1>
+    <p class="muted">All videos you watched and PDFs you downloaded.</p>
+    <a class="btn" href="{{ url_for('main.dashboard') }}">Back to Dashboard</a>
+</div>
+
+{% if history %}
+    <section class="history-list history-list-full">
+        {% for activity in history %}
+            <article class="dashboard-card history-item">
+                <div>
+                    <p class="material-tag">
+                        {{ "Video watched" if activity.activity_type == "watch" else "PDF downloaded" }}
+                    </p>
+                    <h3>{{ activity.material.title }}</h3>
+                    <p class="muted">{{ activity.material.original_filename }}</p>
+                </div>
+                <time
+                    class="history-time"
+                    datetime="{{ (activity.created_at.isoformat() + 'Z') if activity.created_at else '' }}"
+                >
+                    {{ activity.created_at.strftime('%b %d, %Y at %I:%M %p') if activity.created_at else 'Recently' }}
+                </time>
+                <form method="POST" action="{{ url_for('main.delete_history_item', activity_id=activity.id) }}">
+                    <button type="submit">Delete</button>
+                </form>
+            </article>
+        {% endfor %}
+    </section>
+{% else %}
+    <div class="dashboard-card">
+        <p class="muted">Your watched videos and downloaded PDFs will appear here.</p>
+    </div>
+{% endif %}
+
+<script>
+    document.querySelectorAll("time.history-time[datetime]").forEach((time) => {
+        const localDate = new Date(time.dateTime);
+        if (!Number.isNaN(localDate.getTime())) {
+            time.textContent = new Intl.DateTimeFormat(undefined, {
+                dateStyle: "medium",
+                timeStyle: "short"
+            }).format(localDate);
+        }
+    });
+</script>
+
+{% endblock %}

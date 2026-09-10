@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="container feed-container">
+    <h2>Course Educational Feed</h2>
+
+    {% for post in posts %}
+    <div class="post-card">
+        <h3>{{ post.title }}</h3>
+        <div class="post-meta">Published on {{ post.created_at.strftime('%b %d, %Y') }}</div>
+
+        {% if post.tags %}
+            <div class="post-tags">
+                {% for tag in post.tags.split(',') %}
+                    <span class="material-tag">#{{ tag.strip() }}</span>
+                {% endfor %}
+            </div>
+        {% endif %}
+        
+        {% if post.description %}
+            <p>{{ post.description }}</p>
+        {% endif %}
+        
+        <img src="{{ url_for('static', filename='uploads/' + post.image_filename) }}" alt="{{ post.title }}">
+
+        {% if current_user.id == post.trainer_id %}
+            <form method="POST" action="{{ url_for('main.delete_course_post', post_id=post.id) }}" onsubmit="return confirm('Delete this course post?');">
+                <button class="danger-button" type="submit">Delete Post</button>
+            </form>
+        {% endif %}
+    </div>
+    {% else %}
+    <div class="dashboard-card">
+        <p>No educational updates have been posted for this course yet.</p>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

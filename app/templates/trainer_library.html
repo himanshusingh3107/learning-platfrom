@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h1>My Course Notes</h1>
+<a class="btn" href="{{ url_for('trainer.upload_material') }}">Upload Course Note</a>
+
+<section class="materials">
+    {% for material in materials %}
+    <article class="dashboard-card material-card">
+        <p class="material-tag">{{ "Video Solution" if material.material_type == "video" else "Course Note" }}</p>
+        <h2>{{ material.title }}</h2>
+        <p>{{ material.description or "No description provided." }}</p>
+        <a class="btn" href="{{ url_for('trainer.download_material', material_id=material.id) }}">
+            Download {{ material.original_filename }}
+        </a>
+        <form method="POST" action="{{ url_for('trainer.delete_material', material_id=material.id) }}" onsubmit="return confirm('Delete this course note?');">
+            <button class="danger-button" type="submit">Delete Note</button>
+        </form>
+    </article>
+    {% else %}
+        <div class="dashboard-card">
+            <p>You have not uploaded any course notes yet.</p>
+        </div>
+    {% endfor %}
+</section>
+{% endblock %}

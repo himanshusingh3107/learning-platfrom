@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="form-box">
+    <h2>Upload Educational Photo</h2>
+    <form method="POST" enctype="multipart/form-data">
+        <label for="title">Title</label>
+        <input type="text" id="title" name="title" required>
+
+        <label for="description">Description</label>
+        <textarea id="description" name="description" rows="3"></textarea>
+
+        <label for="tags">Tags</label>
+        <input type="text" id="tags" name="tags" placeholder="e.g. Python, beginner, functions">
+
+        <label for="photo">Select Image</label>
+        <input type="file" id="photo" name="photo" accept="image/*" required>
+
+        <button type="submit">Upload to Feed</button>
+    </form>
+</div>
+{% endblock %}

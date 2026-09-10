@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>Learning Platform</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/style.css') }}">
+
+</head>
+
+<body>
+
+<nav>
+
+    <div class="brand-group">
+        {% if current_user.is_authenticated %}
+            <a class="profile-link" href="{{ url_for('main.profile') }}" title="Open profile" aria-label="Open profile">
+                {% if current_user.profile_photo %}
+                    <img src="{{ url_for('main.profile_photo', filename=current_user.profile_photo) }}" alt="Profile photo">
+                {% else %}
+                    <span aria-hidden="true">&#128100;</span>
+                {% endif %}
+            </a>
+        {% endif %}
+
+        <a class="logo" href="{{ url_for('main.index') }}">Learning Platform</a>
+    </div>
+
+    <div class="nav-links">
+
+        <a href="{{ url_for('main.index') }}">
+            Home
+        </a>
+
+        {% if current_user.is_authenticated %}
+
+            <a href="{{ url_for('main.dashboard') }}">
+                Dashboard
+            </a>
+
+            {% if current_user.role == "trainer" %}
+                <a href="{{ url_for('trainer.upload_material') }}">
+                    Upload Course Note
+                </a>
+            {% endif %}
+
+            <form method="POST" action="{{ url_for('auth.logout') }}" class="logout-form">
+                <button type="submit" class="nav-button">Logout</button>
+            </form>
+
+        {% else %}
+
+            <a href="{{ url_for('auth.login') }}">
+                Login
+            </a>
+
+            <a href="{{ url_for('auth.signup') }}">
+                Signup
+            </a>
+
+        {% endif %}
+
+    </div>
+
+</nav>
+
+
+<div class="container">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+
+        {% for category, message in messages %}
+
+            <div class="alert {{ category }}">
+                {{ message }}
+            </div>
+
+        {% endfor %}
+
+    {% endwith %}
+
+    {% block content %}
+    {% endblock %}
+
+</div>
+
+</body>
+
+</html>

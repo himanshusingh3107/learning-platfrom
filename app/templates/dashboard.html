@@ -1,0 +1,133 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="page-heading">
+    <p class="eyebrow">Overview</p>
+    <h1>Dashboard</h1>
+</div>
+
+<div class="dashboard-card welcome-card">
+
+    <h2>
+        Welcome, {{ user.name }}
+    </h2>
+
+    <p class="muted">{{ user.email }} &middot; {{ user.user_code }}</p>
+
+    <p>
+        Role:
+        <strong>{{ user.role|capitalize }}</strong>
+    </p>
+
+</div>
+
+
+{% if user.role == "trainee" %}
+
+<h2 class="section-title">Trainee Dashboard</h2>
+
+<div class="cards">
+
+    <div>My Profile</div>
+    <div>My Courses</div>
+    <div>Assessments</div>
+    <div>Certificates</div>
+
+</div>
+
+<section class="dashboard-section">
+    <div class="section-heading">
+        <div>
+            <p class="eyebrow">Your activity</p>
+            <h2>Learning History</h2>
+        </div>
+        <span class="section-count">{{ history|length }} recent</span>
+    </div>
+
+    {% if history %}
+        <div class="history-list">
+            {% for activity in history %}
+                <article class="dashboard-card history-item">
+                    <div>
+                        <p class="material-tag">
+                            {{ "Video watched" if activity.activity_type == "watch" else "PDF downloaded" }}
+                        </p>
+                        <h3>{{ activity.material.title }}</h3>
+                        <p class="muted">{{ activity.material.original_filename }}</p>
+                    </div>
+                    <time
+                        class="history-time"
+                        datetime="{{ (activity.created_at.isoformat() + 'Z') if activity.created_at else '' }}"
+                    >
+                        {{ activity.created_at.strftime('%b %d, %Y at %I:%M %p') if activity.created_at else 'Recently' }}
+                    </time>
+                    <form method="POST" action="{{ url_for('main.delete_history_item', activity_id=activity.id) }}">
+                        <button type="submit">Delete</button>
+                    </form>
+                </article>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="dashboard-card">
+            <p class="muted">Your watched videos and downloaded PDFs will appear here.</p>
+        </div>
+    {% endif %}
+    <a class="btn history-detail-link" href="{{ url_for('main.history') }}">View in detail</a>
+</section>
+
+<script>
+    document.querySelectorAll("time.history-time[datetime]").forEach((time) => {
+        const localDate = new Date(time.dateTime);
+        if (!Number.isNaN(localDate.getTime())) {
+            time.textContent = new Intl.DateTimeFormat(undefined, {
+                dateStyle: "medium",
+                timeStyle: "short"
+            }).format(localDate);
+        }
+    });
+</script>
+
+
+{% elif user.role == "trainer" %}
+
+<h2 class="section-title">Trainer Dashboard</h2>
+
+<div class="cards">
+
+    <div>Trainer Profile</div>
+    <div>My Courses</div>
+    <div>Questionnaires</div>
+    <div>Trainer Library</div>
+
+</div>
+
+<a class="btn" href="{{ url_for('trainer.upload_material') }}">
+    Upload Course Note
+</a>
+<a class="btn" href="{{ url_for('trainer.library') }}">
+    My Course Notes
+</a>
+
+
+{% elif user.role == "admin" %}
+
+<h2 class="section-title">Admin Dashboard</h2>
+
+<div class="cards">
+
+    <div>User Management</div>
+    <div>Courses</div>
+    <div>Assessments</div>
+    <div>Statistics</div>
+
+</div>
+
+<a class="btn"
+   href="{{ url_for('main.admin_users') }}">
+    Manage Users
+</a>
+
+{% endif %}
+
+{% endblock %}

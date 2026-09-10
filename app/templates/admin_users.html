@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<div class="page-heading">
+    <p class="eyebrow">Administration</p>
+    <h1>User Management</h1>
+</div>
+
+<div class="table-wrap">
+<table>
+
+    <tr>
+        <th>Name</th>
+        <th>User ID</th>
+        <th>Email</th>
+        <th>Role</th>
+        <th>Action</th>
+    </tr>
+
+    {% for user in users %}
+
+    <tr>
+
+        <td>{{ user.name }}</td>
+
+        <td>{{ user.user_code }}</td>
+
+        <td>{{ user.email }}</td>
+
+        <td>{{ user.role }}</td>
+
+        <td>
+            {% if user.role != "admin" %}
+            <form method="POST" action="{{ url_for(
+                'main.delete_user',
+                user_id=user.id
+            ) }}" onsubmit="return confirm('Remove this user?');">
+                <button type="submit">Delete</button>
+            </form>
+            {% endif %}
+
+        </td>
+
+    </tr>
+
+    {% endfor %}
+
+</table>
+</div>
+
+{% endblock %}

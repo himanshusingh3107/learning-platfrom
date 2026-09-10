@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="form-box profile-box">
+    <h1>{{ trainer.name }}</h1>
+
+    <p class="profile-stat">Trainer ID: <strong>{{ trainer.user_code }}</strong></p>
+
+    <div class="profile-preview">
+        {% if trainer.profile_photo %}
+            <img src="{{ url_for('main.profile_photo', filename=trainer.profile_photo) }}" alt="{{ trainer.name }} profile photo">
+        {% else %}
+            <span aria-hidden="true">&#128100;</span>
+        {% endif %}
+    </div>
+
+    <p class="profile-stat">
+        <strong>{{ follower_count }}</strong> trainee followers
+    </p>
+
+    {% if current_user.role == "trainee" %}
+        <form method="POST" action="{{ url_for('main.toggle_trainer_follow', trainer_id=trainer.id) }}">
+            <button type="submit">
+                {% if following %}Unfollow Trainer{% else %}Follow Trainer{% endif %}
+            </button>
+        </form>
+    {% endif %}
+</div>
+{% endblock %}

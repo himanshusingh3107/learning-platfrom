@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="form-box">
+    <h1>Upload Learning Material</h1>
+    <form method="POST" enctype="multipart/form-data">
+        <label for="title">Title</label>
+        <input id="title" name="title" type="text" required>
+
+        <label for="description">Description</label>
+        <textarea id="description" name="description" rows="4"></textarea>
+
+        <label for="tags">Tags</label>
+        <input id="tags" name="tags" type="text" placeholder="Python, loops, beginner">
+
+        <label for="location">Target location (optional)</label>
+        <input id="location" name="location" type="text" placeholder="Country or city">
+
+        <label for="material_type">Material type</label>
+        <select id="material_type" name="material_type">
+            <option value="note">Course Note</option>
+            <option value="video">Video Solution</option>
+        </select>
+
+        <label for="file">File</label>
+        <input id="file" name="file" type="file" required>
+
+        <button type="submit">Publish Material</button>
+    </form>
+</div>
+{% endblock %}
