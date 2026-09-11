@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block content %}
+<main class="form-page">
+    <div class="form-box setup-box">
+        <p class="eyebrow">Step 2 of 2</p>
+        <h1>Set up your account</h1>
+        <p class="muted">Tell us a little more about you so your learning space feels personal.</p>
+        <form method="POST">
+            <div class="form-grid">
+                <label for="birthday">Birthday<input id="birthday" name="birthday" type="date" value="{{ user.birthday or '' }}"></label>
+                <label for="qualification">Qualification<input id="qualification" name="qualification" type="text" placeholder="e.g. BSc Computer Science" value="{{ user.qualification or '' }}"></label>
+                <label for="work_experience">Work experience<input id="work_experience" name="work_experience" type="text" placeholder="e.g. 2 years in design" value="{{ user.work_experience or '' }}"></label>
+                <label for="interests">Interests<input id="interests" name="interests" type="text" placeholder="e.g. UX, Python, leadership" value="{{ user.interests or '' }}"></label>
+            </div>
+            <label for="skills">Skills<textarea id="skills" name="skills" placeholder="List your skills">{{ user.skills or '' }}</textarea></label>
+            <label for="security_question">Security question<select id="security_question" name="security_question"><option value="What was your first school?">What was your first school?</option><option value="What is your favourite subject?">What is your favourite subject?</option><option value="What city were you born in?">What city were you born in?</option></select></label>
+            <label for="security_answer">Security answer<input id="security_answer" name="security_answer" type="text" required></label>
+            <button type="submit">Finish setup</button>
+        </form>
+    </div>
+</main>
+{% endblock %}

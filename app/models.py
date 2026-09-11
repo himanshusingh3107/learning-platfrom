@@ -47,6 +47,12 @@ class User(db.Model):
 
     location = db.Column(db.String(120), nullable=True)
     interests = db.Column(db.String(500), nullable=True)
+    birthday = db.Column(db.String(20), nullable=True)
+    qualification = db.Column(db.String(200), nullable=True)
+    work_experience = db.Column(db.String(500), nullable=True)
+    skills = db.Column(db.String(500), nullable=True)
+    security_question = db.Column(db.String(255), nullable=True)
+    security_answer = db.Column(db.String(255), nullable=True)
 
     def set_password(self, password):
         self.password_hash = password

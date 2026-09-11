@@ -110,6 +110,18 @@ def _upgrade_existing_database():
             with db.engine.begin() as connection:
                 connection.execute(text("ALTER TABLE user ADD COLUMN interests VARCHAR(500)"))
 
+        for column, definition in {
+            "birthday": "VARCHAR(20)",
+            "qualification": "VARCHAR(200)",
+            "work_experience": "VARCHAR(500)",
+            "skills": "VARCHAR(500)",
+            "security_question": "VARCHAR(255)",
+            "security_answer": "VARCHAR(255)",
+        }.items():
+            if column not in columns:
+                with db.engine.begin() as connection:
+                    connection.execute(text(f"ALTER TABLE user ADD COLUMN {column} {definition}"))
+
         from app.models import User
         import uuid
 

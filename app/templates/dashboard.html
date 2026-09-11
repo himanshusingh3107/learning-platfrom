@@ -1,133 +1,51 @@
 {% extends "base.html" %}
 
 {% block content %}
-
-<div class="page-heading">
-    <p class="eyebrow">Overview</p>
-    <h1>Dashboard</h1>
-</div>
-
-<div class="dashboard-card welcome-card">
-
-    <h2>
-        Welcome, {{ user.name }}
-    </h2>
-
-    <p class="muted">{{ user.email }} &middot; {{ user.user_code }}</p>
-
-    <p>
-        Role:
-        <strong>{{ user.role|capitalize }}</strong>
-    </p>
-
-</div>
-
-
-{% if user.role == "trainee" %}
-
-<h2 class="section-title">Trainee Dashboard</h2>
-
-<div class="cards">
-
-    <div>My Profile</div>
-    <div>My Courses</div>
-    <div>Assessments</div>
-    <div>Certificates</div>
-
-</div>
-
-<section class="dashboard-section">
-    <div class="section-heading">
+<main class="app-main">
+    <section class="dashboard-intro">
         <div>
-            <p class="eyebrow">Your activity</p>
-            <h2>Learning History</h2>
+            <p class="eyebrow">{{ user.role|capitalize }} dashboard</p>
+            <h1>Good to see you, {{ user.name.split(' ')[0] }}.</h1>
+            <p class="muted">Here is what is happening in your learning space today.</p>
         </div>
-        <span class="section-count">{{ history|length }} recent</span>
+        <a class="avatar-action" href="{{ url_for('main.profile') }}" aria-label="View profile">
+            {% if user.profile_photo %}<img src="{{ url_for('main.profile_photo', filename=user.profile_photo, v=user.profile_photo) }}" alt="">
+            {% else %}<span>{{ user.name[:1]|upper }}</span>{% endif %}
+        </a>
+    </section>
+
+    {% if user.role == "trainee" %}
+    <div class="stats-grid">
+        <article class="metric-card accent-cyan"><span>Enrolled courses</span><strong>{{ stats.materials }}</strong><small>Available to explore</small></article>
+        <article class="metric-card accent-orange"><span>Learning activity</span><strong>{{ history|length }}</strong><small>Recent interactions</small></article>
+        <article class="metric-card accent-lilac"><span>Pending assignments</span><strong>02</strong><small>Due this week</small></article>
+    </div>
+    <div class="dashboard-grid">
+        <section class="content-panel wide-panel">
+            <div class="section-heading"><div><p class="eyebrow">Keep learning</p><h2>Available courses</h2></div><a href="{{ url_for('main.index') }}">View all</a></div>
+            <div class="course-list">
+                <a class="course-card course-blue" href="{{ url_for('main.index', type='notes') }}"><span class="course-icon">◒</span><div><strong>Course notes</strong><small>Trainer resources and guides</small></div><b>→</b></a>
+                <a class="course-card course-yellow" href="{{ url_for('main.index', type='videos') }}"><span class="course-icon">▷</span><div><strong>Video solutions</strong><small>Learn at your own pace</small></div><b>→</b></a>
+            </div>
+        </section>
+        <section class="content-panel activity-panel">
+            <div class="section-heading"><div><p class="eyebrow">Your progress</p><h2>Recent activity</h2></div></div>
+            {% for activity in history[:3] %}<div class="activity-row"><span class="activity-dot"></span><div><strong>{{ activity.material.title }}</strong><small>{{ activity.activity_type|capitalize }} recently</small></div></div>{% else %}<p class="muted">Your activity will appear here as you learn.</p>{% endfor %}
+        </section>
+    </div>
+    <section class="content-panel notice-panel"><div><p class="eyebrow">From your trainers</p><h2>Stay on track</h2><p class="muted">Check your assignments and notifications before your next class.</p></div><a class="btn" href="{{ url_for('main.history') }}">Open assignments</a></section>
+
+    {% elif user.role == "trainer" %}
+    <div class="stats-grid"><article class="metric-card accent-cyan"><span>Published resources</span><strong>{{ stats.materials }}</strong><small>Across the platform</small></article><article class="metric-card accent-orange"><span>Active trainees</span><strong>{{ stats.trainees }}</strong><small>Ready to learn</small></article><article class="metric-card accent-lilac"><span>Upcoming classes</span><strong>04</strong><small>This month</small></article></div>
+    <div class="dashboard-grid">
+        <section class="content-panel wide-panel"><div class="section-heading"><div><p class="eyebrow">Trainer tools</p><h2>Manage your teaching</h2></div></div><div class="action-grid"><a class="action-card" href="{{ url_for('trainer.upload_material') }}"><span>＋</span><strong>Upload resource</strong><small>Add notes or videos to your library</small></a><a class="action-card" href="{{ url_for('trainer.library') }}"><span>▤</span><strong>Course library</strong><small>Review your published content</small></a><a class="action-card" href="{{ url_for('main.course_feed', course_id=1) }}"><span>◫</span><strong>Course updates</strong><small>Share a post with trainees</small></a></div></section>
+        <section class="content-panel activity-panel"><p class="eyebrow">Plan ahead</p><h2>Upcoming classes</h2><div class="schedule-row"><b>18</b><div><strong>Live learning session</strong><small>Monday · 10:00 AM</small></div></div><div class="schedule-row"><b>22</b><div><strong>Assessment review</strong><small>Friday · 2:30 PM</small></div></div></section>
     </div>
 
-    {% if history %}
-        <div class="history-list">
-            {% for activity in history %}
-                <article class="dashboard-card history-item">
-                    <div>
-                        <p class="material-tag">
-                            {{ "Video watched" if activity.activity_type == "watch" else "PDF downloaded" }}
-                        </p>
-                        <h3>{{ activity.material.title }}</h3>
-                        <p class="muted">{{ activity.material.original_filename }}</p>
-                    </div>
-                    <time
-                        class="history-time"
-                        datetime="{{ (activity.created_at.isoformat() + 'Z') if activity.created_at else '' }}"
-                    >
-                        {{ activity.created_at.strftime('%b %d, %Y at %I:%M %p') if activity.created_at else 'Recently' }}
-                    </time>
-                    <form method="POST" action="{{ url_for('main.delete_history_item', activity_id=activity.id) }}">
-                        <button type="submit">Delete</button>
-                    </form>
-                </article>
-            {% endfor %}
-        </div>
     {% else %}
-        <div class="dashboard-card">
-            <p class="muted">Your watched videos and downloaded PDFs will appear here.</p>
-        </div>
+    <div class="stats-grid"><article class="metric-card accent-cyan"><span>Total users</span><strong>{{ stats.users }}</strong><small>Across all roles</small></article><article class="metric-card accent-orange"><span>Trainees</span><strong>{{ stats.trainees }}</strong><small>Learning accounts</small></article><article class="metric-card accent-lilac"><span>Trainers</span><strong>{{ stats.trainers }}</strong><small>Teaching accounts</small></article></div>
+    <div class="dashboard-grid"><section class="content-panel wide-panel"><div class="section-heading"><div><p class="eyebrow">Administration</p><h2>Manage the platform</h2></div></div><div class="action-grid"><a class="action-card" href="{{ url_for('main.admin_users') }}"><span>♙</span><strong>User management</strong><small>Review trainee and trainer accounts</small></a><a class="action-card" href="{{ url_for('main.admin_users') }}"><span>✦</span><strong>Trainer approvals</strong><small>Keep teaching accounts moving</small></a><a class="action-card" href="{{ url_for('main.index') }}"><span>↗</span><strong>Send notification</strong><small>Share an update with learners</small></a></div></section><section class="content-panel activity-panel"><p class="eyebrow">Platform pulse</p><h2>Content library</h2><strong class="big-number">{{ stats.materials }}</strong><p class="muted">learning resources currently available</p></section></div>
     {% endif %}
-    <a class="btn history-detail-link" href="{{ url_for('main.history') }}">View in detail</a>
-</section>
-
-<script>
-    document.querySelectorAll("time.history-time[datetime]").forEach((time) => {
-        const localDate = new Date(time.dateTime);
-        if (!Number.isNaN(localDate.getTime())) {
-            time.textContent = new Intl.DateTimeFormat(undefined, {
-                dateStyle: "medium",
-                timeStyle: "short"
-            }).format(localDate);
-        }
-    });
-</script>
-
-
-{% elif user.role == "trainer" %}
-
-<h2 class="section-title">Trainer Dashboard</h2>
-
-<div class="cards">
-
-    <div>Trainer Profile</div>
-    <div>My Courses</div>
-    <div>Questionnaires</div>
-    <div>Trainer Library</div>
-
-</div>
-
-<a class="btn" href="{{ url_for('trainer.upload_material') }}">
-    Upload Course Note
-</a>
-<a class="btn" href="{{ url_for('trainer.library') }}">
-    My Course Notes
-</a>
-
-
-{% elif user.role == "admin" %}
-
-<h2 class="section-title">Admin Dashboard</h2>
-
-<div class="cards">
-
-    <div>User Management</div>
-    <div>Courses</div>
-    <div>Assessments</div>
-    <div>Statistics</div>
-
-</div>
-
-<a class="btn"
-   href="{{ url_for('main.admin_users') }}">
-    Manage Users
-</a>
-
-{% endif %}
-
+</main>
 {% endblock %}
+

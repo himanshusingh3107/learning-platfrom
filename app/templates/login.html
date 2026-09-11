@@ -2,13 +2,15 @@
 
 {% block content %}
 
-<div class="form-box">
-
-    <h2>Login</h2>
+<main class="form-page">
+<div class="form-box auth-box">
+    <p class="eyebrow">Welcome back</p>
+    <h1>Log in to LearnSpace</h1>
+    <p class="muted">Pick up where you left off.</p>
 
     <form method="POST">
 
-        <label>Email</label>
+        <label for="email">Email</label>
 
         <input
             type="email"
@@ -16,7 +18,7 @@
             required
         >
 
-        <label>Password</label>
+        <label for="password">Password</label>
 
         <input
             type="password"
@@ -24,19 +26,14 @@
             required
         >
 
-        <button type="submit">
-            Login
-        </button>
+        <button type="submit">Login</button>
 
     </form>
 
-    <p>
-        Don't have an account?
-        <a href="{{ url_for('auth.signup') }}">
-            Signup
-        </a>
-    </p>
+    <a class="text-link" href="#">Forgot password?</a>
+    <p class="form-footer">Don't have an account? <a href="{{ url_for('auth.signup') }}">Create one</a></p>
 
 </div>
+</main>
 
 {% endblock %}

@@ -2,13 +2,15 @@
 
 {% block content %}
 
-<div class="form-box">
-
-    <h2>Create Account</h2>
+<main class="form-page">
+<div class="form-box auth-box">
+    <p class="eyebrow">Start your journey</p>
+    <h1>Create your account</h1>
+    <p class="muted">One login for every learning role.</p>
 
     <form method="POST" enctype="multipart/form-data">
 
-        <label>Full Name</label>
+        <label for="name">Full name</label>
 
         <input
             type="text"
@@ -16,24 +18,7 @@
             required
         >
 
-        <label>Email</label>
-
-        <input
-            type="email"
-            name="email"
-            required
-        >
-
-        <label>Password</label>
-
-        <input
-            type="password"
-            name="password"
-            minlength="8"
-            required
-        >
-
-        <label>Role</label>
+        <label for="role">I am joining as</label>
 
         <select name="role" id="role">
 
@@ -45,7 +30,28 @@
                 Trainer
             </option>
 
+            <option value="admin">
+                Admin
+            </option>
+
         </select>
+
+        <label for="email">Email</label>
+
+        <input
+            type="email"
+            name="email"
+            required
+        >
+
+        <label for="password">Password</label>
+
+        <input
+            type="password"
+            name="password"
+            minlength="8"
+            required
+        >
 
         <div id="certificate-field">
             <label>Trainer Certificate</label>
@@ -59,7 +65,9 @@
 
     </form>
 
+    <p class="form-footer">Already have an account? <a href="{{ url_for('auth.login') }}">Log in</a></p>
 </div>
+</main>
 
 <script>
     const roleSelect = document.getElementById("role");

@@ -2,45 +2,49 @@
 
 {% block content %}
 <div class="form-box profile-box">
-    <h1>My Profile</h1>
-
-    <p class="profile-stat">User ID: <strong>{{ user.user_code }}</strong></p>
-
-    {% if user.role == "trainer" %}
-        <p class="profile-stat">
-            <strong>{{ follower_count }}</strong> trainee followers
-        </p>
-    {% endif %}
-
-    <div class="profile-preview">
-        {% if user.profile_photo %}
-            <img src="{{ url_for('main.profile_photo', filename=user.profile_photo, v=user.profile_photo) }}" alt="Your profile photo">
-        {% else %}
-            <span aria-hidden="true">&#128100;</span>
-        {% endif %}
+    <div class="profile-header-card">
+        <div class="profile-preview">
+            {% if user.profile_photo %}
+                <img src="{{ url_for('main.profile_photo', filename=user.profile_photo, v=user.profile_photo) }}" alt="Your profile photo">
+            {% else %}
+                <span aria-hidden="true">&#128100;</span>
+            {% endif %}
+        </div>
+        <div>
+            <p class="eyebrow">{{ user.role|capitalize }} account</p>
+            <h1>My Profile</h1>
+            <p class="profile-stat">ID: <strong>{{ user.user_code }}</strong></p>
+            {% if user.role == "trainer" %}<p class="profile-stat"><strong>{{ follower_count }}</strong> trainee followers</p>{% endif %}
+        </div>
     </div>
 
-    <form method="POST" enctype="multipart/form-data">
-        <label for="name">Name</label>
-        <input id="name" name="name" type="text" value="{{ user.name }}" required>
-
-        <label for="location">Location</label>
-        <input id="location" name="location" type="text" value="{{ user.location or '' }}" maxlength="120">
-
-        <label for="interests">Learning interests</label>
-        <input id="interests" name="interests" type="text" value="{{ user.interests or '' }}" maxlength="500" placeholder="Python, databases, communication">
-
-        <label for="photo">Profile photo</label>
-        <input id="photo" name="photo" type="file" accept=".jpg,.jpeg,.png,.gif,.webp">
+    <form method="POST" enctype="multipart/form-data" id="profile-form">
+        <div class="profile-fields-grid">
+            <label class="field-card" for="name">Name<input id="name" name="name" type="text" value="{{ user.name }}" required readonly></label>
+            <label class="field-card" for="location">Location<input id="location" name="location" type="text" value="{{ user.location or '' }}" maxlength="120" readonly></label>
+            <label class="field-card" for="interests">Learning interests<input id="interests" name="interests" type="text" value="{{ user.interests or '' }}" maxlength="500" placeholder="Python, databases, communication" readonly></label>
+            <label class="field-card" for="photo">Profile photo<input id="photo" name="photo" type="file" accept=".jpg,.jpeg,.png,.gif,.webp" disabled></label>
+        </div>
 
         {% if user.profile_photo %}
             <label class="checkbox-label">
-                <input name="remove_photo" value="yes" type="checkbox">
+                <input name="remove_photo" value="yes" type="checkbox" disabled>
                 Remove current photo
             </label>
         {% endif %}
 
-        <button type="submit">Save Profile</button>
+        <button type="button" id="edit-profile">Update profile</button>
+        <button type="submit" id="save-profile" hidden>Save profile</button>
     </form>
 </div>
+<script>
+    document.getElementById("edit-profile").addEventListener("click", () => {
+        document.querySelectorAll("#profile-form input").forEach((field) => {
+            field.readOnly = false;
+            field.disabled = false;
+        });
+        document.getElementById("edit-profile").hidden = true;
+        document.getElementById("save-profile").hidden = false;
+    });
+</script>
 {% endblock %}

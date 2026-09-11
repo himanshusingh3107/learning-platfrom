@@ -23,7 +23,7 @@ def signup():
         certificate = request.files.get("certificate")
 
         # Validate role
-        if role not in ["trainee", "trainer"]:
+        if role not in ["trainee", "trainer", "admin"]:
             flash("Invalid role.", "danger")
             return redirect(url_for("auth.signup"))
 
@@ -84,15 +84,36 @@ def signup():
 
         db.session.add(user)
         db.session.commit()
-
-        if role == "trainer":
-            flash("Signup complete. An admin must approve your account before you can log in.", "success")
-        else:
-            flash("Registration successful. You can now log in.", "success")
-
-        return redirect(url_for("auth.login"))
+        session["user_id"] = user.id
+        return redirect(url_for("auth.account_setup"))
 
     return render_template("signup.html")
+
+
+@auth.route("/account-setup", methods=["GET", "POST"])
+def account_setup():
+    user_id = session.get("user_id")
+    if not user_id:
+        return redirect(url_for("auth.signup"))
+
+    user = User.query.get_or_404(user_id)
+    if request.method == "POST":
+        user.birthday = request.form.get("birthday", "").strip()[:20] or None
+        user.qualification = request.form.get("qualification", "").strip()[:200] or None
+        user.work_experience = request.form.get("work_experience", "").strip()[:500] or None
+        user.interests = request.form.get("interests", "").strip()[:500] or None
+        user.skills = request.form.get("skills", "").strip()[:500] or None
+        user.security_question = request.form.get("security_question", "").strip()[:255] or None
+        user.security_answer = request.form.get("security_answer", "").strip()[:255] or None
+        db.session.commit()
+        if user.role == "trainer":
+            session.pop("user_id", None)
+            flash("Your setup is complete. An admin must approve your trainer account before you can log in.", "success")
+            return redirect(url_for("auth.login"))
+        flash("Your account setup is complete.", "success")
+        return redirect(url_for("main.dashboard"))
+
+    return render_template("account_setup.html", user=user)
 
 
 @auth.route("/login", methods=["GET", "POST"])

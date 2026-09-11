@@ -155,11 +155,33 @@ def dashboard():
         UserActivity.created_at.desc()
     ).limit(5).all()
 
+    stats = {
+        "materials": CourseMaterial.query.count(),
+        "trainers": User.query.filter_by(role="trainer").count(),
+        "trainees": User.query.filter_by(role="trainee").count(),
+        "users": User.query.count(),
+    }
+
     return render_template(
         "dashboard.html",
         user=current_user,
-        history=history
+        history=history,
+        stats=stats
     )
+
+
+@bp.route("/courses")
+def courses():
+    if not current_user.is_authenticated:
+        return redirect(url_for("auth.login"))
+    return redirect(url_for("main.index", type="all"))
+
+
+@bp.route("/settings")
+def settings():
+    if not current_user.is_authenticated:
+        return redirect(url_for("auth.login"))
+    return render_template("settings.html")
 
 
 @bp.route("/dashboard/history")
