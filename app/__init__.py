@@ -29,7 +29,6 @@ class CurrentUser:
 
 
 current_user = CurrentUser()
-_db_initialized = False
 
 
 def create_app():
@@ -75,17 +74,6 @@ def create_app():
     app.register_blueprint(main)
     app.register_blueprint(trainer)
 
-    # Create database and ensure storage folders exist once on boot
-    global _db_initialized
-    if not _db_initialized:
-        try:
-            with app.app_context():
-                db.create_all()
-                _upgrade_existing_database()
-                db.engine.dispose()
-            _db_initialized = True
-        except Exception as e:
-            app.logger.warning(f"Database init warning: {e}")
 
     import os
     for folder in [
