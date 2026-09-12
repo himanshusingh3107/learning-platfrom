@@ -12,7 +12,7 @@ class Config:
     turso_auth_token = os.getenv("TURSO_AUTH_TOKEN")
 
     if turso_url and turso_auth_token:
-        turso_host = turso_url.replace("https://", "").replace("http://", "").rstrip("/")
+        turso_host = turso_url.replace("libsql://", "").replace("https://", "").replace("http://", "").rstrip("/")
         SQLALCHEMY_DATABASE_URI = f"sqlite+libsql://{turso_host}?secure=true"
         SQLALCHEMY_ENGINE_OPTIONS = {
             "connect_args": {"auth_token": turso_auth_token}

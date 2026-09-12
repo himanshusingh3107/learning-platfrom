@@ -7,3 +7,5 @@ __pycache__/
 instance/
 app/uploads/
 .vscode/
+DEPLOYMENT_INFO_BACKUP.txt
+*.backup
