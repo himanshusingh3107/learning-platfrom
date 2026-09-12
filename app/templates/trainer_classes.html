@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+
+{% block content %}
+<main class="app-main">
+    <section class="dashboard-intro">
+        <div>
+            <p class="eyebrow">Trainer tools</p>
+            <h1>Upcoming classes</h1>
+            <p class="muted">Publish schedule changes for your followers.</p>
+        </div>
+    </section>
+
+    <section class="content-panel schedule-manager">
+        <div class="section-heading"><div><p class="eyebrow">Create</p><h2>Add a class</h2></div></div>
+        <form method="POST" class="schedule-form">
+            <label>Class title<input name="title" maxlength="200" required></label>
+            <label>Date and time<input name="scheduled_for" type="datetime-local" required></label>
+            <label>Description<textarea name="description" rows="3"></textarea></label>
+            <button type="submit">Publish class</button>
+        </form>
+    </section>
+
+    <section class="content-panel">
+        <div class="section-heading"><div><p class="eyebrow">Manage</p><h2>Your schedule</h2></div></div>
+        <div class="schedule-list">
+            {% for class_schedule in classes %}
+            <article class="managed-schedule-row">
+                <div class="schedule-date"><strong>{{ class_schedule.scheduled_for.strftime('%d') }}</strong><small>{{ class_schedule.scheduled_for.strftime('%b') }}</small></div>
+                <div class="managed-schedule-copy"><strong>{{ class_schedule.title }}</strong><small>{{ class_schedule.scheduled_for.strftime('%A, %I:%M %p') }}</small>{% if class_schedule.description %}<p>{{ class_schedule.description }}</p>{% endif %}</div>
+                <div class="schedule-actions"><a class="btn" href="{{ url_for('trainer.edit_class', class_id=class_schedule.id) }}">Edit</a><form method="POST" action="{{ url_for('trainer.delete_class', class_id=class_schedule.id) }}"><button class="danger-button" type="submit">Cancel</button></form></div>
+            </article>
+            {% else %}<p class="muted">No classes scheduled yet.</p>{% endfor %}
+        </div>
+    </section>
+</main>
+{% endblock %}

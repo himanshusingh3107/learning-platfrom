@@ -15,7 +15,7 @@ from flask import (
 
 
 from app import db, current_user
-from app.models import CourseMaterial, UserActivity
+from app.models import Course, CourseMaterial, UserActivity, ClassSchedule, Notification, TrainerFollow
 
 
 trainer = Blueprint(
@@ -36,6 +36,8 @@ ALLOWED_EXTENSIONS = {
     "webm"
 }
 
+THUMBNAIL_EXTENSIONS = {"jpg", "jpeg", "png", "gif", "webp"}
+
 
 def allowed_file(filename):
 
@@ -48,6 +50,144 @@ def allowed_file(filename):
     )[1].lower()
 
     return extension in ALLOWED_EXTENSIONS
+
+
+def _schedule_datetime(value):
+    try:
+        return datetime.strptime(value, "%Y-%m-%dT%H:%M")
+    except (TypeError, ValueError):
+        return None
+
+
+def _notify_followers(trainer_id, title, message):
+    follower_ids = db.session.query(TrainerFollow.trainee_id).filter_by(
+        trainer_id=trainer_id
+    ).all()
+    db.session.add_all(
+        Notification(user_id=trainee_id, title=title, message=message)
+        for (trainee_id,) in follower_ids
+    )
+
+
+@trainer.route("/courses", methods=["GET", "POST"])
+def manage_courses():
+    if current_user.role != "trainer":
+        return "Access Denied", 403
+
+    if request.method == "POST":
+        title = request.form.get("title", "").strip()
+        description = request.form.get("description", "").strip()
+        if not title or len(title) > 200:
+            flash("Enter a course title with 200 characters or fewer.", "danger")
+            return redirect(url_for("trainer.manage_courses"))
+        if len(description) > 5000:
+            flash("Course description must be 5,000 characters or fewer.", "danger")
+            return redirect(url_for("trainer.manage_courses"))
+
+        course = Course(
+            title=title,
+            description=description or None,
+            trainer_id=current_user.id,
+        )
+        db.session.add(course)
+        db.session.flush()
+        _notify_followers(
+            current_user.id,
+            "New course launched",
+            f"{title} is now available to explore.",
+        )
+        db.session.commit()
+        flash("Course launched and followers notified.", "success")
+        return redirect(url_for("trainer.manage_courses"))
+
+    courses = Course.query.filter_by(trainer_id=current_user.id).order_by(
+        Course.created_at.desc()
+    ).all()
+    return render_template("trainer_courses.html", courses=courses)
+
+
+@trainer.route("/classes", methods=["GET", "POST"])
+def manage_classes():
+    if current_user.role != "trainer":
+        return "Access Denied", 403
+
+    if request.method == "POST":
+        title = request.form.get("title", "").strip()
+        description = request.form.get("description", "").strip()
+        scheduled_for = _schedule_datetime(request.form.get("scheduled_for"))
+        if not title or len(title) > 200 or scheduled_for is None:
+            flash("Enter a title and a valid class date and time.", "danger")
+            return redirect(url_for("trainer.manage_classes"))
+
+        class_schedule = ClassSchedule(
+            trainer_id=current_user.id,
+            title=title,
+            description=description or None,
+            scheduled_for=scheduled_for
+        )
+        db.session.add(class_schedule)
+        db.session.flush()
+        _notify_followers(
+            current_user.id,
+            "New class from your trainer",
+            f"{title} is scheduled for {scheduled_for.strftime('%b %d at %I:%M %p')}."
+        )
+        db.session.commit()
+        flash("Class published and followers notified.", "success")
+        return redirect(url_for("trainer.manage_classes"))
+
+    classes = ClassSchedule.query.filter_by(
+        trainer_id=current_user.id
+    ).order_by(ClassSchedule.scheduled_for.asc()).all()
+    return render_template("trainer_classes.html", classes=classes)
+
+
+@trainer.route("/classes/<int:class_id>/edit", methods=["GET", "POST"])
+def edit_class(class_id):
+    if current_user.role != "trainer":
+        return "Access Denied", 403
+
+    class_schedule = ClassSchedule.query.filter_by(
+        id=class_id,
+        trainer_id=current_user.id
+    ).first_or_404()
+
+    if request.method == "POST":
+        title = request.form.get("title", "").strip()
+        scheduled_for = _schedule_datetime(request.form.get("scheduled_for"))
+        if not title or len(title) > 200 or scheduled_for is None:
+            flash("Enter a title and a valid class date and time.", "danger")
+            return redirect(url_for("trainer.edit_class", class_id=class_id))
+
+        class_schedule.title = title
+        class_schedule.description = request.form.get("description", "").strip() or None
+        class_schedule.scheduled_for = scheduled_for
+        _notify_followers(
+            current_user.id,
+            "Class updated by your trainer",
+            f"{title} is now scheduled for {scheduled_for.strftime('%b %d at %I:%M %p')}."
+        )
+        db.session.commit()
+        flash("Class updated and followers notified.", "success")
+        return redirect(url_for("trainer.manage_classes"))
+
+    return render_template("trainer_class_form.html", class_schedule=class_schedule)
+
+
+@trainer.route("/classes/<int:class_id>/delete", methods=["POST"])
+def delete_class(class_id):
+    if current_user.role != "trainer":
+        return "Access Denied", 403
+    class_schedule = ClassSchedule.query.filter_by(id=class_id, trainer_id=current_user.id).first_or_404()
+    _notify_followers(
+        current_user.id,
+        "Class cancelled by your trainer",
+        f"{class_schedule.title} has been cancelled."
+    )
+    db.session.delete(class_schedule)
+    db.session.commit()
+    flash("Class cancelled and followers notified.", "success")
+    return redirect(url_for("trainer.manage_classes"))
 
 
 @trainer.route("/library")
@@ -95,6 +235,7 @@ def upload_material():
         material_type = request.form.get("material_type", "note")
 
         file = request.files.get("file")
+        thumbnail = request.files.get("thumbnail")
 
         if not title or len(title) > 200:
             flash(
@@ -132,6 +273,19 @@ def upload_material():
                 "This file type is not allowed.",
                 "danger"
             )
+            return redirect(url_for("trainer.upload_material"))
+
+        thumbnail_filename = None
+        if thumbnail and thumbnail.filename:
+            thumbnail_extension = thumbnail.filename.rsplit(".", 1)[-1].lower()
+            if thumbnail_extension not in THUMBNAIL_EXTENSIONS or not thumbnail.mimetype.startswith("image/"):
+                flash("Thumbnail must be a JPG, PNG, GIF, or WEBP image.", "danger")
+                return redirect(url_for("trainer.upload_material"))
+
+            thumbnail_filename = f"{uuid.uuid4().hex}.{thumbnail_extension}"
+            thumbnail_folder = current_app.config["THUMBNAIL_UPLOAD_FOLDER"]
+            os.makedirs(thumbnail_folder, exist_ok=True)
+            thumbnail.save(os.path.join(thumbnail_folder, thumbnail_filename))
 
         extension = file.filename.rsplit(".", 1)[-1].lower()
         if material_type == "video" and extension not in {"mp4", "webm"}:
@@ -180,7 +334,8 @@ def upload_material():
             material_type=material_type,
             tags=tags or None,
             location=location,
-            trainer_id=current_user.id
+            trainer_id=current_user.id,
+            thumbnail_filename=thumbnail_filename
         )
 
         db.session.add(material)
@@ -216,6 +371,14 @@ def delete_material(material_id):
     )
     if os.path.isfile(file_path):
         os.remove(file_path)
+
+    if material.thumbnail_filename:
+        thumbnail_path = os.path.join(
+            current_app.config["THUMBNAIL_UPLOAD_FOLDER"],
+            material.thumbnail_filename
+        )
+        if os.path.isfile(thumbnail_path):
+            os.remove(thumbnail_path)
 
     db.session.delete(material)
     db.session.commit()
@@ -282,6 +445,14 @@ def download_material(material_id):
         material.filename,
         as_attachment=material.material_type != "video",
         download_name=material.original_filename
+    )
+
+
+@trainer.route("/thumbnail/<filename>")
+def material_thumbnail(filename):
+    return send_from_directory(
+        current_app.config["THUMBNAIL_UPLOAD_FOLDER"],
+        filename
     )
 
 

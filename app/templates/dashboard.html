@@ -4,6 +4,10 @@
 <main class="app-main">
     <section class="dashboard-intro">
         <div>
+        <section class="content-panel notification-panel" id="notifications">
+            <div class="section-heading"><div><p class="eyebrow">Administration</p><h2>Admin messages</h2></div><form method="POST" action="{{ url_for('main.mark_notifications_read') }}"><button type="submit">Mark all read</button></form></div>
+            {% for notification in notifications %}<div class="notification-row {{ 'unread' if not notification.is_read else '' }}"><strong>{{ notification.title }}</strong><small>{{ notification.message }}</small></div>{% else %}<p class="muted">Messages from the administrator will appear here.</p>{% endfor %}
+        </section>
             <p class="eyebrow">{{ user.role|capitalize }} dashboard</p>
             <h1>Good to see you, {{ user.name.split(' ')[0] }}.</h1>
             <p class="muted">Here is what is happening in your learning space today.</p>
@@ -22,9 +26,9 @@
     </div>
     <div class="dashboard-grid">
         <section class="content-panel wide-panel">
-            <div class="section-heading"><div><p class="eyebrow">Keep learning</p><h2>Available courses</h2></div><a href="{{ url_for('main.index') }}">View all</a></div>
+            <div class="section-heading"><div><p class="eyebrow">Keep learning</p><h2>Solutions</h2></div><a href="{{ url_for('main.index') }}">View all</a></div>
             <div class="course-list">
-                <a class="course-card course-blue" href="{{ url_for('main.index', type='notes') }}"><span class="course-icon">◒</span><div><strong>Course notes</strong><small>Trainer resources and guides</small></div><b>→</b></a>
+                <a class="course-card course-blue" href="{{ url_for('main.index', type='notes') }}"><span class="course-icon">◒</span><div><strong>Note solutions</strong><small>Trainer resources and guides</small></div><b>→</b></a>
                 <a class="course-card course-yellow" href="{{ url_for('main.index', type='videos') }}"><span class="course-icon">▷</span><div><strong>Video solutions</strong><small>Learn at your own pace</small></div><b>→</b></a>
             </div>
         </section>
@@ -33,18 +37,79 @@
             {% for activity in history[:3] %}<div class="activity-row"><span class="activity-dot"></span><div><strong>{{ activity.material.title }}</strong><small>{{ activity.activity_type|capitalize }} recently</small></div></div>{% else %}<p class="muted">Your activity will appear here as you learn.</p>{% endfor %}
         </section>
     </div>
+    <section class="content-panel explore-courses-panel">
+        <div class="section-heading"><div><p class="eyebrow">Learn something new</p><h2>Explore Courses</h2></div></div>
+        <div class="explore-course-grid">
+            {% for course in explore_courses %}
+            <a class="explore-course-card" href="{{ url_for('main.course_feed', course_id=course.id) }}">
+                <span class="explore-course-label">Launched course</span>
+                <h3>{{ course.title }}</h3>
+                <p>{{ course.description or "A learning path created by your trainer." }}</p>
+                <small>By {{ course.trainer.name }}</small>
+            </a>
+            {% else %}
+            <p class="muted">Courses launched by trainers will appear here.</p>
+            {% endfor %}
+        </div>
+    </section>
     <section class="content-panel notice-panel"><div><p class="eyebrow">From your trainers</p><h2>Stay on track</h2><p class="muted">Check your assignments and notifications before your next class.</p></div><a class="btn" href="{{ url_for('main.history') }}">Open assignments</a></section>
+
+    <section class="content-panel liked-content-panel">
+        <div class="section-heading">
+            <div><p class="eyebrow">Saved for later</p><h2>Liked notes</h2></div>
+            <a href="{{ url_for('main.index', type='notes') }}">Browse notes</a>
+        </div>
+        <div class="liked-material-grid">
+            {% for material in liked_notes[:3] %}
+            <a class="liked-material-card" href="{{ url_for('trainer.download_material', material_id=material.id) }}">
+                <div class="liked-material-thumb note-visual">
+                    {% if material.thumbnail_filename %}<img src="{{ url_for('trainer.material_thumbnail', filename=material.thumbnail_filename) }}" alt="">{% else %}▤{% endif %}
+                </div>
+                <div><strong>{{ material.title }}</strong><small>{{ material.trainer.name }}</small></div>
+            </a>
+            {% else %}<p class="muted">Liked notes will appear here.</p>{% endfor %}
+        </div>
+    </section>
+
+    <section class="content-panel liked-content-panel">
+        <div class="section-heading">
+            <div><p class="eyebrow">Saved for later</p><h2>Liked videos</h2></div>
+            <a href="{{ url_for('main.index', type='videos') }}">Browse videos</a>
+        </div>
+        <div class="liked-material-grid">
+            {% for material in liked_videos[:3] %}
+            <a class="liked-material-card" href="{{ url_for('trainer.download_material', material_id=material.id) }}">
+                <div class="liked-material-thumb video-visual">
+                    {% if material.thumbnail_filename %}<img src="{{ url_for('trainer.material_thumbnail', filename=material.thumbnail_filename) }}" alt="">{% else %}▶{% endif %}
+                </div>
+                <div><strong>{{ material.title }}</strong><small>{{ material.trainer.name }}</small></div>
+            </a>
+            {% else %}<p class="muted">Liked videos will appear here.</p>{% endfor %}
+        </div>
+    </section>
+
+    <section class="content-panel" id="notifications">
+        <div class="section-heading"><div><p class="eyebrow">Trainer updates</p><h2>Upcoming classes</h2></div></div>
+        {% for class_schedule in upcoming_classes[:5] %}<div class="schedule-row"><b>{{ class_schedule.scheduled_for.strftime('%d') }}</b><div><strong>{{ class_schedule.title }}</strong><small>{{ class_schedule.trainer.name }} · {{ class_schedule.scheduled_for.strftime('%A · %I:%M %p') }}</small></div></div>{% else %}<p class="muted">Follow a trainer to see their upcoming classes here.</p>{% endfor %}
+    </section>
+    <section class="content-panel notification-panel">
+        <div class="section-heading"><div><p class="eyebrow">Notifications</p><h2>Trainer updates</h2></div><form method="POST" action="{{ url_for('main.mark_notifications_read') }}"><button type="submit">Mark all read</button></form></div>
+        {% for notification in notifications %}<div class="notification-row {{ 'unread' if not notification.is_read else '' }}"><strong>{{ notification.title }}</strong><small>{{ notification.message }}</small></div>{% else %}<p class="muted">New schedule updates from followed trainers will appear here.</p>{% endfor %}
+    </section>
 
     {% elif user.role == "trainer" %}
     <div class="stats-grid"><article class="metric-card accent-cyan"><span>Published resources</span><strong>{{ stats.materials }}</strong><small>Across the platform</small></article><article class="metric-card accent-orange"><span>Active trainees</span><strong>{{ stats.trainees }}</strong><small>Ready to learn</small></article><article class="metric-card accent-lilac"><span>Upcoming classes</span><strong>04</strong><small>This month</small></article></div>
     <div class="dashboard-grid">
-        <section class="content-panel wide-panel"><div class="section-heading"><div><p class="eyebrow">Trainer tools</p><h2>Manage your teaching</h2></div></div><div class="action-grid"><a class="action-card" href="{{ url_for('trainer.upload_material') }}"><span>＋</span><strong>Upload resource</strong><small>Add notes or videos to your library</small></a><a class="action-card" href="{{ url_for('trainer.library') }}"><span>▤</span><strong>Course library</strong><small>Review your published content</small></a><a class="action-card" href="{{ url_for('main.course_feed', course_id=1) }}"><span>◫</span><strong>Course updates</strong><small>Share a post with trainees</small></a></div></section>
-        <section class="content-panel activity-panel"><p class="eyebrow">Plan ahead</p><h2>Upcoming classes</h2><div class="schedule-row"><b>18</b><div><strong>Live learning session</strong><small>Monday · 10:00 AM</small></div></div><div class="schedule-row"><b>22</b><div><strong>Assessment review</strong><small>Friday · 2:30 PM</small></div></div></section>
+        <section class="content-panel wide-panel"><div class="section-heading"><div><p class="eyebrow">Trainer tools</p><h2>Manage your teaching</h2></div></div><div class="action-grid"><a class="action-card" href="{{ url_for('trainer.upload_material') }}"><span>＋</span><strong>Upload resource</strong><small>Add notes or videos to your library</small></a><a class="action-card" href="{{ url_for('trainer.library') }}"><span>▤</span><strong>Course library</strong><small>Review your published content</small></a><a class="action-card" href="{{ url_for('trainer.manage_courses') }}"><span>◈</span><strong>Launch course</strong><small>Publish it in Explore Courses</small></a></div></section>
+        <section class="content-panel activity-panel"><div class="section-heading"><div><p class="eyebrow">Plan ahead</p><h2>Upcoming classes</h2></div><a href="{{ url_for('trainer.manage_classes') }}">Manage</a></div>{% for class_schedule in upcoming_classes[:3] %}<div class="schedule-row"><b>{{ class_schedule.scheduled_for.strftime('%d') }}</b><div><strong>{{ class_schedule.title }}</strong><small>{{ class_schedule.scheduled_for.strftime('%A · %I:%M %p') }}</small></div></div>{% else %}<p class="muted">No classes scheduled yet.</p>{% endfor %}</section>
     </div>
-
+    <section class="content-panel notification-panel" id="notifications">
+        <div class="section-heading"><div><p class="eyebrow">Administration</p><h2>Admin messages</h2></div><form method="POST" action="{{ url_for('main.mark_notifications_read') }}"><button type="submit">Mark all read</button></form></div>
+        {% for notification in notifications %}<div class="notification-row {{ 'unread' if not notification.is_read else '' }}"><strong>{{ notification.title }}</strong><small>{{ notification.message }}</small></div>{% else %}<p class="muted">Messages from the administrator will appear here.</p>{% endfor %}
+    </section>
     {% else %}
     <div class="stats-grid"><article class="metric-card accent-cyan"><span>Total users</span><strong>{{ stats.users }}</strong><small>Across all roles</small></article><article class="metric-card accent-orange"><span>Trainees</span><strong>{{ stats.trainees }}</strong><small>Learning accounts</small></article><article class="metric-card accent-lilac"><span>Trainers</span><strong>{{ stats.trainers }}</strong><small>Teaching accounts</small></article></div>
-    <div class="dashboard-grid"><section class="content-panel wide-panel"><div class="section-heading"><div><p class="eyebrow">Administration</p><h2>Manage the platform</h2></div></div><div class="action-grid"><a class="action-card" href="{{ url_for('main.admin_users') }}"><span>♙</span><strong>User management</strong><small>Review trainee and trainer accounts</small></a><a class="action-card" href="{{ url_for('main.admin_users') }}"><span>✦</span><strong>Trainer approvals</strong><small>Keep teaching accounts moving</small></a><a class="action-card" href="{{ url_for('main.index') }}"><span>↗</span><strong>Send notification</strong><small>Share an update with learners</small></a></div></section><section class="content-panel activity-panel"><p class="eyebrow">Platform pulse</p><h2>Content library</h2><strong class="big-number">{{ stats.materials }}</strong><p class="muted">learning resources currently available</p></section></div>
+    <div class="dashboard-grid"><section class="content-panel wide-panel"><div class="section-heading"><div><p class="eyebrow">Administration</p><h2>Manage the platform</h2></div></div><div class="action-grid"><a class="action-card" href="{{ url_for('main.admin_users') }}"><span>♙</span><strong>User management</strong><small>Review trainee and trainer accounts</small></a><a class="action-card" href="{{ url_for('main.admin_users') }}"><span>✦</span><strong>Trainer approvals</strong><small>Keep teaching accounts moving</small></a>{% if user.is_super_admin %}<a class="action-card" href="{{ url_for('main.admin_users') }}#pending-admin-approvals"><span>✓</span><strong>Admin approvals</strong><small>Approve pending admin accounts</small></a>{% endif %}<a class="action-card" href="{{ url_for('main.admin_users') }}"><span>↗</span><strong>Send notification</strong><small>Message active trainers</small></a></div></section><section class="content-panel activity-panel"><p class="eyebrow">Platform pulse</p><h2>Content library</h2><strong class="big-number">{{ stats.materials }}</strong><p class="muted">learning resources currently available</p></section></div>
     {% endif %}
 </main>
 {% endblock %}

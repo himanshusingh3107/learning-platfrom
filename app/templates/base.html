@@ -12,6 +12,7 @@
 
     <link rel="stylesheet"
           href="{{ url_for('static', filename='css/style.css') }}">
+    <script src="{{ url_for('static', filename='js/ui-animations.js') }}" defer></script>
 
 </head>
 
@@ -22,62 +23,57 @@
     }
 </script>
 
-<nav class="topbar">
-    <div class="brand-group">
+<div class="app-shell">
+    <aside class="side-rail" aria-label="Sidebar navigation">
+        <div class="brand-badge">L</div>
         {% if current_user.is_authenticated %}
-            <a class="profile-link" href="{{ url_for('main.profile') }}" title="Open profile" aria-label="Open profile">
-                {% if current_user.profile_photo %}
-                    <img src="{{ url_for('main.profile_photo', filename=current_user.profile_photo, v=current_user.profile_photo) }}" alt="Profile photo">
-                {% else %}<span aria-hidden="true">&#128100;</span>{% endif %}
-            </a>
-            <div>
-                <a class="logo" href="{{ url_for('main.dashboard') }}">{{ current_user.name }}</a>
-                <small class="role-label">{{ current_user.role|capitalize }} space</small>
-            </div>
-        {% else %}
-            <a class="logo" href="{{ url_for('main.index') }}">LearnSpace</a>
+            <a class="rail-button {{ 'active' if request.endpoint == 'main.dashboard' else '' }}" href="{{ url_for('main.dashboard') }}" aria-label="Dashboard" title="Dashboard">⌂</a>
+            <a class="rail-button {{ 'active' if request.endpoint in ['main.courses', 'main.index'] else '' }}" href="{{ url_for('main.courses') }}" aria-label="Solutions" title="Solutions">▣</a>
+            <a class="rail-button {{ 'active' if request.endpoint == 'main.explore_courses' else '' }}" href="{{ url_for('main.explore_courses') }}" aria-label="Explore Courses" title="Explore Courses">&#128218;</a>
+            <a class="rail-button {{ 'active' if request.endpoint == 'main.settings' else '' }}" href="{{ url_for('main.settings') }}" aria-label="Settings" title="Settings">⚙</a>
+            <a class="rail-button {{ 'active' if request.endpoint == 'main.profile' else '' }}" href="{{ url_for('main.profile') }}" aria-label="Profile" title="Profile">☑</a>
         {% endif %}
-    </div>
-    {% if current_user.is_authenticated %}
-        <div class="top-actions">
-            <form class="nav-search" method="GET" action="{{ url_for('main.index') }}">
-                <span aria-hidden="true">&#128269;</span>
-                <input type="search" name="q" placeholder="Search" aria-label="Search learning content">
-            </form>
-            <a class="icon-button" href="{{ url_for('main.settings') }}" aria-label="Settings">&#9881;</a>
-            <span class="notification-button" aria-label="Notifications">&#128276;<b>3</b></span>
-        </div>
-    {% endif %}
-</nav>
+    </aside>
 
-
-<div class="container">
-
-    {% with messages = get_flashed_messages(with_categories=true) %}
-
-        {% for category, message in messages %}
-
-            <div class="alert {{ category }}">
-                {{ message }}
+    <div class="workspace-panel">
+        <nav class="topbar">
+            <div class="brand-group">
+                {% if current_user.is_authenticated %}
+                    <a class="profile-link" href="{{ url_for('main.profile') }}" title="Open profile" aria-label="Open profile">
+                        {% if current_user.profile_photo %}
+                            <img src="{{ url_for('main.profile_photo', filename=current_user.profile_photo, v=current_user.profile_photo) }}" alt="Profile photo">
+                        {% else %}<span aria-hidden="true">&#128100;</span>{% endif %}
+                    </a>
+                    <div>
+                        <a class="logo" href="{{ url_for('main.dashboard') }}">{{ current_user.name }}</a>
+                        <small class="role-label">{{ current_user.role|capitalize }} space</small>
+                    </div>
+                {% else %}
+                    <a class="logo" href="{{ url_for('main.index') }}">LearnSpace</a>
+                {% endif %}
             </div>
+            {% if current_user.is_authenticated %}
+                <div class="top-actions">
+                    <a class="icon-button" href="{{ url_for('main.settings') }}" aria-label="Settings">&#9881;</a>
+                    <a class="notification-button" href="{{ url_for('main.dashboard') }}#notifications" aria-label="Notifications">&#128276;<b>{{ current_user.notifications|selectattr('is_read', 'equalto', false)|list|length }}</b></a>
+                </div>
+            {% endif %}
+        </nav>
 
-        {% endfor %}
+        <div class="container">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% for category, message in messages %}
+                    <div class="alert {{ category }}">
+                        {{ message }}
+                    </div>
+                {% endfor %}
+            {% endwith %}
 
-    {% endwith %}
-
-    {% block content %}
-    {% endblock %}
-
+            {% block content %}
+            {% endblock %}
+        </div>
+    </div>
 </div>
-
-{% if current_user.is_authenticated %}
-<nav class="bottom-nav" aria-label="Main navigation">
-    <a class="{{ 'active' if request.endpoint == 'main.dashboard' else '' }}" href="{{ url_for('main.dashboard') }}"><span>⌂</span>Dashboard</a>
-    <a class="{{ 'active' if request.endpoint in ['main.courses', 'main.index'] else '' }}" href="{{ url_for('main.courses') }}"><span>▤</span>Courses</a>
-    <a class="{{ 'active' if request.endpoint == 'main.settings' else '' }}" href="{{ url_for('main.settings') }}"><span>⚙</span>Settings</a>
-    <a class="{{ 'active' if request.endpoint == 'main.profile' else '' }}" href="{{ url_for('main.profile') }}"><span>☑</span>Profile</a>
-</nav>
-{% endif %}
 
 </body>
 

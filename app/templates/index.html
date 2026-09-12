@@ -2,38 +2,8 @@
 
 {% block content %}
 
-<section class="hero">
-
-    {% if current_user.is_authenticated %}
-        <p class="eyebrow">Your learning desk</p>
-        <h1>
-            {% if material_filter == "videos" %}
-                Video Solutions
-            {% elif material_filter == "following" %}
-                Following
-            {% elif material_filter == "all" %}
-                All Learning Content
-            {% else %}
-                Course Notes
-            {% endif %}
-        </h1>
-
-        <p>Review notes and video solutions from your trainers.</p>
-
-        <form class="search-form" method="GET" action="{{ url_for('main.index') }}">
-            <input
-                type="search"
-                name="q"
-                value="{{ search_query }}"
-                placeholder="Search content or trainer"
-                aria-label="Search content by title, description, or trainer"
-            >
-            {% if material_filter != "notes" %}
-                <input type="hidden" name="type" value="{{ material_filter }}">
-            {% endif %}
-            <button type="submit">Search</button>
-        </form>
-    {% else %}
+{% if not current_user.is_authenticated %}
+<section class="hero learning-hero">
         <p class="eyebrow">Learn with intention</p>
         <h1>Learning & Training Platform</h1>
 
@@ -42,9 +12,8 @@
         <a class="btn" href="{{ url_for('auth.signup') }}">
             Get Started
         </a>
-    {% endif %}
-
 </section>
+{% endif %}
 
 {% if current_user.is_authenticated %}
 {% if search_query %}
@@ -100,46 +69,37 @@
         </nav>
         <span class="section-count">{{ materials|length }} items</span>
     </div>
+    <div class="material-grid">
     {% for material in materials %}
     <article class="dashboard-card material-card">
-        <p class="material-tag">{{ "Video Solution" if material.material_type == "video" else "Course Note" }}</p>
-        <h2>{{ material.title }}</h2>
-        <p class="post-meta">
-            Posted by
-            <a href="{{ url_for('main.trainer_profile', trainer_id=material.trainer.id) }}">
-                {{ material.trainer.name }}
-            </a>
-            {% if material.uploaded_at %}
-                on {{ material.uploaded_at.strftime('%b %d, %Y') }}
+        <div class="material-card-visual {{ 'video-visual' if material.material_type == 'video' else 'note-visual' }}">
+            {% if material.thumbnail_filename %}
+                <img src="{{ url_for('trainer.material_thumbnail', filename=material.thumbnail_filename) }}" alt="{{ material.title }} thumbnail">
+            {% else %}
+                <span>{{ '▶' if material.material_type == 'video' else '▤' }}</span>
             {% endif %}
-        </p>
-        {% if material.description %}
-            <p>{{ material.description }}</p>
-        {% endif %}
-        {% if material.tags %}
-            <p class="material-tag">{{ material.tags }}</p>
-        {% endif %}
-        <form method="POST" action="{{ url_for('main.toggle_material_like', material_id=material.id) }}">
-            <button type="submit">Like</button>
-        </form>
+        </div>
+        <div class="material-card-body">
+            <p class="material-tag">{{ "Video Solution" if material.material_type == "video" else "Course Note" }}</p>
+            <h2>{{ material.title }}</h2>
+            <p class="post-meta">By <a href="{{ url_for('main.trainer_profile', trainer_id=material.trainer.id) }}">{{ material.trainer.name }}</a></p>
+            {% if material.description %}<p class="material-description">{{ material.description }}</p>{% endif %}
+            <div class="material-actions">
+                <form method="POST" action="{{ url_for('main.toggle_material_like', material_id=material.id) }}">
+                    <button type="submit">Like</button>
+                </form>
+                <a class="btn" href="{{ url_for('trainer.download_material', material_id=material.id) }}">Open</a>
+            </div>
+        </div>
         {% if material.material_type == "video" %}
-            <video
-                class="solution-video"
-                controls
-                preload="metadata"
-                data-watch-url="{{ url_for('trainer.record_video_watch', material_id=material.id) }}"
-            >
+            <video class="solution-video" controls preload="metadata" data-watch-url="{{ url_for('trainer.record_video_watch', material_id=material.id) }}">
                 <source src="{{ url_for('trainer.download_material', material_id=material.id) }}" type="video/{{ material.file_type }}">
                 Your browser does not support video playback.
             </video>
-        {% else %}
-            <a class="btn" href="{{ url_for('trainer.download_material', material_id=material.id) }}">
-                Download {{ material.original_filename }}
-            </a>
         {% endif %}
     </article>
     {% else %}
-        <div class="dashboard-card">
+        <div class="dashboard-card empty-card">
             {% if material_filter == "following" %}
                 <p>No content from followed trainers yet. Follow a trainer to see their notes and video solutions here.</p>
             {% else %}
@@ -147,6 +107,7 @@
             {% endif %}
         </div>
     {% endfor %}
+    </div>
 </section>
 
 <script>

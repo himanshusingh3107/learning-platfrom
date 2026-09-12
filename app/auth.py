@@ -67,7 +67,8 @@ def signup():
             name=name,
             email=email,
             role=role,
-            is_active=role != "trainer",
+            # Trainers and admins require a privileged approval before login.
+            is_active=role == "trainee",
         )
 
         user.set_password(password)
@@ -106,9 +107,13 @@ def account_setup():
         user.security_question = request.form.get("security_question", "").strip()[:255] or None
         user.security_answer = request.form.get("security_answer", "").strip()[:255] or None
         db.session.commit()
-        if user.role == "trainer":
+        if user.role in {"trainer", "admin"}:
             session.pop("user_id", None)
-            flash("Your setup is complete. An admin must approve your trainer account before you can log in.", "success")
+            approver = "super admin" if user.role == "admin" else "admin"
+            flash(
+                f"Your setup is complete. A {approver} must approve your account before you can log in.",
+                "success"
+            )
             return redirect(url_for("auth.login"))
         flash("Your account setup is complete.", "success")
         return redirect(url_for("main.dashboard"))
@@ -139,13 +144,14 @@ def login():
             )
             return redirect(url_for("auth.login"))
 
-        if user.role == "trainer" and not user.is_active:
-            flash("Your trainer account is waiting for admin approval.", "warning")
+        if user.role in {"trainer", "admin"} and not user.is_active:
+            approver = "super admin" if user.role == "admin" else "admin"
+            flash(f"Your {user.role} account is waiting for {approver} approval.", "warning")
             return redirect(url_for("auth.login"))
 
         session["user_id"] = user.id
 
-        return redirect(url_for("main.index"))
+        return redirect(url_for("main.dashboard"))
 
     return render_template("login.html")
 

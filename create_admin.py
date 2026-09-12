@@ -12,6 +12,8 @@ with app.app_context():
 
     if existing:
         existing.role = "admin"
+        existing.is_active = True
+        existing.is_super_admin = True
         existing.set_password("123456789")
         db.session.commit()
         print("Admin password reset successfully.")
@@ -22,6 +24,8 @@ with app.app_context():
             name="System Administrator",
             email="abcd@gmail.com",
             role="admin",
+            is_active=True,
+            is_super_admin=True,
         )
 
         admin.set_password("123456789")

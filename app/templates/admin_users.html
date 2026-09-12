@@ -4,8 +4,17 @@
 
 <div class="page-heading">
     <p class="eyebrow">Administration</p>
-    <h1>User Management</h1>
+    <h1>{{ "Account Approvals" if is_super_admin else "Trainer Approvals" }}</h1>
 </div>
+
+<section class="content-panel admin-message-panel">
+    <div class="section-heading"><div><p class="eyebrow">Communication</p><h2>Message trainers</h2></div></div>
+    <form method="POST" action="{{ url_for('main.notify_trainers') }}" class="admin-message-form">
+        <input name="title" maxlength="200" placeholder="Message title" required>
+        <textarea name="message" maxlength="2000" rows="3" placeholder="Write an update for active trainers..." required></textarea>
+        <button type="submit">Send to trainers</button>
+    </form>
+</section>
 
 <div class="table-wrap">
 <table>
@@ -14,7 +23,6 @@
         <th>Name</th>
         <th>User ID</th>
         <th>Email</th>
-        <th>Role</th>
         <th>Status</th>
         <th>Certificate</th>
         <th>Action</th>
@@ -29,8 +37,6 @@
         <td>{{ user.user_code }}</td>
 
         <td>{{ user.email }}</td>
-
-        <td>{{ user.role }}</td>
 
         <td>
             {% if user.role == "trainer" and not user.is_active %}
@@ -79,5 +85,42 @@
 
 </table>
 </div>
+
+{% if is_super_admin %}
+<section class="content-panel pending-admins-panel" id="pending-admin-approvals">
+    <div class="section-heading">
+        <div>
+            <p class="eyebrow">Super admin only</p>
+            <h2>Pending Admin Approvals</h2>
+        </div>
+    </div>
+    <div class="table-wrap">
+        <table>
+            <tr>
+                <th>Name</th>
+                <th>User ID</th>
+                <th>Email</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+            {% for admin in pending_admins %}
+            <tr>
+                <td>{{ admin.name }}</td>
+                <td>{{ admin.user_code }}</td>
+                <td>{{ admin.email }}</td>
+                <td>Waiting for super admin approval</td>
+                <td>
+                    <form method="POST" action="{{ url_for('main.approve_admin', user_id=admin.id) }}">
+                        <button type="submit">Approve admin</button>
+                    </form>
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5">No admin accounts are waiting for approval.</td></tr>
+            {% endfor %}
+        </table>
+    </div>
+</section>
+{% endif %}
 
 {% endblock %}

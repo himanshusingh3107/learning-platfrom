@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block content %}
+<main class="app-main">
+    <section class="dashboard-intro">
+        <div>
+            <p class="eyebrow">Learn something new</p>
+            <h1>Explore Courses</h1>
+            <p class="muted">Discover courses launched by trainers and enroll to begin learning.</p>
+        </div>
+    </section>
+
+    <section class="explore-course-grid">
+        {% for course in courses %}
+        <article class="explore-course-card static-card">
+            <span class="explore-course-label">Launched course</span>
+            <h3>{{ course.title }}</h3>
+            <p>{{ course.description or "A learning path created by your trainer." }}</p>
+            <small>By {{ course.trainer.name }}</small>
+            {% if current_user.role == "trainee" %}
+                {% if course.id in enrolled_course_ids %}
+                    <span class="enrolled-status">Enrolled</span>
+                {% else %}
+                    <form method="POST" action="{{ url_for('main.enroll_in_course', course_id=course.id) }}">
+                        <button type="submit">Enroll now</button>
+                    </form>
+                {% endif %}
+            {% endif %}
+        </article>
+        {% else %}
+        <div class="content-panel"><p class="muted">No trainer has launched a course yet.</p></div>
+        {% endfor %}
+    </section>
+</main>
+{% endblock %}

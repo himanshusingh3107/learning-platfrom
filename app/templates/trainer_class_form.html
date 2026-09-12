@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="form-box schedule-manager">
+    <p class="eyebrow">Trainer tools</p>
+    <h1>Edit class</h1>
+    <form method="POST" class="schedule-form">
+        <label>Class title<input name="title" maxlength="200" value="{{ class_schedule.title }}" required></label>
+        <label>Date and time<input name="scheduled_for" type="datetime-local" value="{{ class_schedule.scheduled_for.strftime('%Y-%m-%dT%H:%M') }}" required></label>
+        <label>Description<textarea name="description" rows="4">{{ class_schedule.description or '' }}</textarea></label>
+        <button type="submit">Save changes</button>
+    </form>
+</div>
+{% endblock %}

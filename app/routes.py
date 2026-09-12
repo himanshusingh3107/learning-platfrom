@@ -6,7 +6,8 @@ from sqlalchemy import or_, select
 from app import db, current_user
 from app.models import (
     User, CourseMaterial, CoursePost, TrainerFollow,
-    UserActivity
+    UserActivity, ClassSchedule, Notification, Course, CourseEnrollment,
+    CourseProgress, CourseQuiz, CourseQuizQuestion, QuizAttempt
 )
 
 bp = Blueprint("main", __name__)
@@ -155,19 +156,65 @@ def dashboard():
         UserActivity.created_at.desc()
     ).limit(5).all()
 
+    liked_materials = UserActivity.query.filter_by(
+        user_id=current_user.id,
+        activity_type="like"
+    ).join(
+        CourseMaterial,
+        UserActivity.material_id == CourseMaterial.id
+    ).order_by(
+        UserActivity.created_at.desc()
+    ).all()
+    liked_notes = [activity.material for activity in liked_materials if activity.material.material_type != "video"]
+    liked_videos = [activity.material for activity in liked_materials if activity.material.material_type == "video"]
+
+    if current_user.role == "trainer":
+        upcoming_classes = ClassSchedule.query.filter_by(
+            trainer_id=current_user.id
+        ).order_by(ClassSchedule.scheduled_for.asc()).limit(5).all()
+        notifications = Notification.query.filter_by(
+            user_id=current_user.id
+        ).order_by(Notification.created_at.desc()).limit(5).all()
+    else:
+        followed_trainer_ids = db.session.query(TrainerFollow.trainer_id).filter_by(
+            trainee_id=current_user.id
+        )
+        upcoming_classes = ClassSchedule.query.filter(
+            ClassSchedule.trainer_id.in_(followed_trainer_ids),
+            ClassSchedule.scheduled_for >= datetime.utcnow()
+        ).order_by(ClassSchedule.scheduled_for.asc()).limit(5).all()
+        notifications = Notification.query.filter_by(
+            user_id=current_user.id
+        ).order_by(Notification.created_at.desc()).limit(5).all()
+
     stats = {
         "materials": CourseMaterial.query.count(),
         "trainers": User.query.filter_by(role="trainer").count(),
         "trainees": User.query.filter_by(role="trainee").count(),
         "users": User.query.count(),
     }
+    explore_courses = Course.query.order_by(Course.created_at.desc()).limit(6).all()
 
     return render_template(
         "dashboard.html",
         user=current_user,
         history=history,
-        stats=stats
+        stats=stats,
+        liked_notes=liked_notes,
+        liked_videos=liked_videos,
+        upcoming_classes=upcoming_classes,
+        notifications=notifications,
+        explore_courses=explore_courses
     )
+
+
+@bp.route("/notifications/read", methods=["POST"])
+def mark_notifications_read():
+    if not current_user.is_authenticated:
+        return redirect(url_for("auth.login"))
+    Notification.query.filter_by(user_id=current_user.id, is_read=False).update({"is_read": True})
+    db.session.commit()
+    return redirect(request.referrer or url_for("main.dashboard"))
 
 
 @bp.route("/courses")
@@ -175,6 +222,56 @@ def courses():
     if not current_user.is_authenticated:
         return redirect(url_for("auth.login"))
     return redirect(url_for("main.index", type="all"))
+
+
+@bp.route("/explore-courses")
+def explore_courses():
+    if not current_user.is_authenticated:
+        return redirect(url_for("auth.login"))
+
+    courses = Course.query.order_by(Course.created_at.desc()).all()
+    enrolled_course_ids = set()
+    if current_user.role == "trainee":
+        enrolled_course_ids = {
+            course_id for (course_id,) in db.session.query(CourseEnrollment.course_id).filter_by(
+                trainee_id=current_user.id
+            ).all()
+        }
+
+    return render_template(
+        "explore_courses.html",
+        courses=courses,
+        enrolled_course_ids=enrolled_course_ids,
+    )
+
+
+@bp.route("/courses/<int:course_id>/enroll", methods=["POST"])
+def enroll_in_course(course_id):
+    if not current_user.is_authenticated:
+        return redirect(url_for("auth.login"))
+    if current_user.role != "trainee":
+        flash("Only trainees can enroll in courses.", "warning")
+        return redirect(url_for("main.explore_courses"))
+
+    course = db.session.get(Course, course_id)
+    if course is None:
+        return "Course not found", 404
+
+    enrollment = CourseEnrollment.query.filter_by(
+        course_id=course.id,
+        trainee_id=current_user.id,
+    ).first()
+    if enrollment:
+        flash("You are already enrolled in this course.", "warning")
+    else:
+        db.session.add(CourseEnrollment(
+            course_id=course.id,
+            trainee_id=current_user.id,
+        ))
+        db.session.commit()
+        flash(f"You are enrolled in {course.title}.", "success")
+
+    return redirect(url_for("main.explore_courses"))
 
 
 @bp.route("/settings")
@@ -372,8 +469,42 @@ def admin_users():
         flash("Unauthorized access.", "danger")
         return redirect(url_for("auth.login"))
 
-    users = User.query.order_by(User.is_active.asc(), User.name.asc()).all()
-    return render_template("admin_users.html", users=users)
+    trainers = User.query.filter_by(role="trainer").order_by(
+        User.is_active.asc(), User.name.asc()
+    ).all()
+    pending_admins = []
+    if current_user.is_super_admin:
+        pending_admins = User.query.filter_by(role="admin", is_active=False).order_by(
+            User.name.asc()
+        ).all()
+    return render_template(
+        "admin_users.html",
+        users=trainers,
+        pending_admins=pending_admins,
+        is_super_admin=current_user.is_super_admin,
+    )
+
+
+@bp.route("/admin/notify-trainers", methods=["POST"])
+def notify_trainers():
+    if not current_user.is_authenticated or current_user.role != "admin":
+        flash("Unauthorized action.", "danger")
+        return redirect(url_for("auth.login"))
+
+    title = request.form.get("title", "").strip()
+    message = request.form.get("message", "").strip()
+    if not title or not message or len(title) > 200 or len(message) > 2000:
+        flash("Enter a title and message within the allowed length.", "danger")
+        return redirect(url_for("main.admin_users"))
+
+    trainers = User.query.filter_by(role="trainer", is_active=True).all()
+    db.session.add_all(
+        Notification(user_id=trainer.id, title=title, message=message)
+        for trainer in trainers
+    )
+    db.session.commit()
+    flash(f"Notification sent to {len(trainers)} active trainer(s).", "success")
+    return redirect(url_for("main.admin_users"))
 
 
 @bp.route("/admin/approve-trainer/<int:user_id>", methods=["POST"])
@@ -386,6 +517,23 @@ def approve_trainer(user_id):
     trainer.is_active = True
     db.session.commit()
     flash(f"Trainer '{trainer.name}' was approved.", "success")
+    return redirect(url_for("main.admin_users"))
+
+
+@bp.route("/admin/approve-admin/<int:user_id>", methods=["POST"])
+def approve_admin(user_id):
+    if not current_user.is_authenticated or not current_user.is_super_admin:
+        flash("Only a super admin can approve admin accounts.", "danger")
+        return redirect(url_for("auth.login"))
+
+    admin = User.query.filter_by(
+        id=user_id,
+        role="admin",
+        is_super_admin=False,
+    ).first_or_404()
+    admin.is_active = True
+    db.session.commit()
+    flash(f"Admin '{admin.name}' was approved.", "success")
     return redirect(url_for("main.admin_users"))
 
 
@@ -420,14 +568,73 @@ def delete_user(user_id):
 
     user_to_delete = User.query.get_or_404(user_id)
 
-    # Clean up associated content before removing the user.
-    CourseMaterial.query.filter_by(trainer_id=user_id).delete()
+    # Clean up dependent records before removing the account.  In particular,
+    # a course requires its trainer_id, so deleting its owner first would make
+    # SQLAlchemy try to set course.trainer_id to NULL.
+    course_ids = [course_id for (course_id,) in db.session.query(Course.id).filter_by(trainer_id=user_id).all()]
+    own_enrollment_ids = [
+        enrollment_id for (enrollment_id,) in db.session.query(CourseEnrollment.id).filter_by(trainee_id=user_id).all()
+    ]
+    course_enrollment_ids = []
+    quiz_ids = []
+    material_ids = [
+        material_id for (material_id,) in db.session.query(CourseMaterial.id).filter_by(trainer_id=user_id).all()
+    ]
+
+    if course_ids:
+        course_enrollment_ids = [
+            enrollment_id for (enrollment_id,) in db.session.query(CourseEnrollment.id).filter(
+                CourseEnrollment.course_id.in_(course_ids)
+            ).all()
+        ]
+        quiz_ids = [
+            quiz_id for (quiz_id,) in db.session.query(CourseQuiz.id).filter(
+                CourseQuiz.course_id.in_(course_ids)
+            ).all()
+        ]
+        material_ids.extend(
+            material_id for (material_id,) in db.session.query(CourseMaterial.id).filter(
+                CourseMaterial.course_id.in_(course_ids)
+            ).all()
+        )
+
+    enrollment_ids = list(set(own_enrollment_ids + course_enrollment_ids))
+    material_ids = list(set(material_ids))
+
+    if enrollment_ids:
+        CourseProgress.query.filter(CourseProgress.enrollment_id.in_(enrollment_ids)).delete(
+            synchronize_session=False
+        )
+        CourseEnrollment.query.filter(CourseEnrollment.id.in_(enrollment_ids)).delete(
+            synchronize_session=False
+        )
+
+    if quiz_ids:
+        QuizAttempt.query.filter(QuizAttempt.quiz_id.in_(quiz_ids)).delete(synchronize_session=False)
+        CourseQuizQuestion.query.filter(CourseQuizQuestion.quiz_id.in_(quiz_ids)).delete(
+            synchronize_session=False
+        )
+        CourseQuiz.query.filter(CourseQuiz.id.in_(quiz_ids)).delete(synchronize_session=False)
+
+    activity_filter = UserActivity.user_id == user_id
+    if material_ids:
+        activity_filter = activity_filter | UserActivity.material_id.in_(material_ids)
+    UserActivity.query.filter(activity_filter).delete(synchronize_session=False)
+    if material_ids:
+        CourseMaterial.query.filter(CourseMaterial.id.in_(material_ids)).delete(
+            synchronize_session=False
+        )
+
     CoursePost.query.filter_by(trainer_id=user_id).delete()
-    UserActivity.query.filter_by(user_id=user_id).delete()
+    ClassSchedule.query.filter_by(trainer_id=user_id).delete()
+    Notification.query.filter_by(user_id=user_id).delete()
     TrainerFollow.query.filter(
         (TrainerFollow.trainer_id == user_id) |
         (TrainerFollow.trainee_id == user_id)
     ).delete(synchronize_session=False)
+
+    if course_ids:
+        Course.query.filter(Course.id.in_(course_ids)).delete(synchronize_session=False)
 
     db.session.delete(user_to_delete)
     db.session.commit()

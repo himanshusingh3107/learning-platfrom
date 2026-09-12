@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+
+{% block content %}
+<main class="app-main">
+    <section class="dashboard-intro">
+        <div>
+            <p class="eyebrow">Trainer tools</p>
+            <h1>Launch a course</h1>
+            <p class="muted">Published courses appear in the trainee Explore Courses section.</p>
+        </div>
+    </section>
+
+    <section class="content-panel course-launch-panel">
+        <div class="section-heading"><div><p class="eyebrow">New course</p><h2>Course details</h2></div></div>
+        <form method="POST" class="schedule-form">
+            <label>Course title<input name="title" maxlength="200" required></label>
+            <label>Course description<textarea name="description" rows="4" maxlength="5000" placeholder="What will learners explore?"></textarea></label>
+            <button type="submit">Launch course</button>
+        </form>
+    </section>
+
+    <section class="content-panel">
+        <div class="section-heading"><div><p class="eyebrow">Published</p><h2>Your launched courses</h2></div></div>
+        <div class="explore-course-grid">
+            {% for course in courses %}
+            <article class="explore-course-card static-card">
+                <span class="explore-course-label">Live in Explore Courses</span>
+                <h3>{{ course.title }}</h3>
+                <p>{{ course.description or "No description added yet." }}</p>
+            </article>
+            {% else %}<p class="muted">You have not launched a course yet.</p>{% endfor %}
+        </div>
+    </section>
+</main>
+{% endblock %}

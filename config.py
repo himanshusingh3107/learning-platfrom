@@ -51,6 +51,13 @@ class Config:
         "materials"
     )
 
+    THUMBNAIL_UPLOAD_FOLDER = os.path.join(
+        os.path.dirname(__file__),
+        "app",
+        "uploads",
+        "thumbnails"
+    )
+
     PROFILE_UPLOAD_FOLDER = os.path.join(
         os.path.dirname(__file__),
         "app",
