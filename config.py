@@ -15,10 +15,11 @@ class Config:
 
     if turso_url and turso_auth_token:
         turso_host = turso_url.replace("libsql://", "").replace("https://", "").replace("http://", "").rstrip("/")
-        SQLALCHEMY_DATABASE_URI = f"sqlite+libsql://{turso_host}?secure=true"
+        SQLALCHEMY_DATABASE_URI = f"sqlite+libsql://{turso_host}/?secure=true"
         SQLALCHEMY_ENGINE_OPTIONS = {
             "connect_args": {"auth_token": turso_auth_token},
-            "poolclass": NullPool,
+            "pool_pre_ping": True,
+            "pool_recycle": 300,
         }
     else:
         SQLALCHEMY_DATABASE_URI = os.getenv(
