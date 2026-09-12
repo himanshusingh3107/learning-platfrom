@@ -362,3 +362,15 @@ def _upgrade_existing_database():
                 connection.execute(
                     text("ALTER TABLE user_activity ADD COLUMN search_term VARCHAR(200)")
                 )
+
+
+_app_instance = None
+
+
+def __getattr__(name):
+    if name == "app":
+        global _app_instance
+        if _app_instance is None:
+            _app_instance = create_app()
+        return _app_instance
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
