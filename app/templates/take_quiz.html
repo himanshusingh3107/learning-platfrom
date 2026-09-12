@@ -1,0 +1,216 @@
+{% extends "base.html" %}
+
+{% block content %}
+<main class="app-main take-quiz-main" style="max-width: 860px; margin: 0 auto;">
+    <!-- Breadcrumb Navigation -->
+    <nav class="course-breadcrumb" aria-label="Breadcrumb" style="margin-bottom: 16px; font-size: 13px; display: flex; flex-wrap: wrap; align-items: center; gap: 6px;">
+        <a href="{{ url_for('main.explore_courses') }}" style="color: var(--teal); text-decoration: none; font-weight: 600;">Courses</a>
+        <span class="breadcrumb-separator" style="color: var(--muted);">/</span>
+        <a href="{{ url_for('main.course_detail', course_id=course.id) }}" style="color: var(--teal); text-decoration: none; font-weight: 600;">{{ course.title }}</a>
+        <span class="breadcrumb-separator" style="color: var(--muted);">/</span>
+        <span class="breadcrumb-current" style="color: var(--muted);">{{ quiz.title }}</span>
+    </nav>
+
+    <!-- Quiz Header Banner -->
+    <header class="quiz-header-banner content-panel" style="margin-bottom: 24px; border-radius: 16px;">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 16px; flex-wrap: wrap;">
+            <div style="flex: 1; min-width: 0;">
+                <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 10px;">
+                    <span class="quiz-badge" style="background: rgba(37, 99, 235, 0.12); color: #2563eb; font-weight: 700; font-size: 11px; padding: 4px 10px; border-radius: 999px; text-transform: uppercase;">
+                        ❓ Assessment
+                    </span>
+                    <span class="muted" style="font-size: 13px;">{{ course.title }}</span>
+                </div>
+                <h1 style="font-size: clamp(22px, 5vw, 28px); font-weight: 800; margin: 0 0 10px; line-height: 1.2;">{{ quiz.title }}</h1>
+                <p class="muted" style="font-size: 14.5px; margin: 0; line-height: 1.5;">
+                    {{ quiz.description or "Complete the multiple choice questions below to test your subject understanding." }}
+                </p>
+            </div>
+            <div style="display: flex; flex-direction: column; align-items: flex-start; gap: 8px;">
+                <span style="font-size: 12.5px; font-weight: 600; background: rgba(0,0,0,0.05); padding: 6px 12px; border-radius: 8px; white-space: nowrap;">
+                    📝 {{ questions|length }} {{ 'Question' if questions|length == 1 else 'Questions' }}
+                </span>
+                <a href="{{ url_for('main.course_detail', course_id=course.id) }}" class="btn btn-outline" style="font-size: 12.5px; padding: 6px 12px; white-space: nowrap;">
+                    ← Back to Playlist
+                </a>
+            </div>
+        </div>
+
+        {% if result_mode and attempt %}
+        <!-- Result Summary Card -->
+        <div class="quiz-result-scorecard" style="margin-top: 24px; padding: 20px; border-radius: 12px; border: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 16px; background: {% if percentage >= 75 %}rgba(34, 197, 94, 0.08){% elif percentage >= 50 %}rgba(59, 130, 246, 0.08){% else %}rgba(239, 68, 68, 0.08){% endif %};">
+            <div style="display: flex; align-items: center; gap: 16px;">
+                <div style="font-size: 42px;">
+                    {% if percentage >= 75 %}🏆{% elif percentage >= 50 %}🎯{% else %}💡{% endif %}
+                </div>
+                <div>
+                    <h3 style="margin: 0 0 4px; font-size: 20px;">
+                        {% if percentage >= 75 %}
+                            Excellent Work!
+                        {% elif percentage >= 50 %}
+                            Good Effort!
+                        {% else %}
+                            Keep Practicing!
+                        {% endif %}
+                    </h3>
+                    <p class="muted" style="margin: 0; font-size: 14px;">
+                        You scored <strong>{{ attempt.score }}</strong> out of <strong>{{ attempt.total_questions }}</strong> questions correctly ({{ percentage }}%).
+                    </p>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <a href="{{ url_for('main.take_quiz', course_id=course.id, quiz_id=quiz.id) }}" class="btn" style="padding: 10px 18px; font-size: 14px;">
+                    🔄 Retake Quiz
+                </a>
+                <a href="{{ url_for('main.course_detail', course_id=course.id) }}" class="btn btn-outline" style="padding: 10px 18px; font-size: 14px;">
+                    Return to Course
+                </a>
+            </div>
+        </div>
+        {% endif %}
+    </header>
+
+    {% if not questions %}
+    <div class="content-panel" style="text-align: center; padding: 48px 20px; border-radius: 16px;">
+        <div style="font-size: 40px; margin-bottom: 12px;">📭</div>
+        <h2>No Questions Found</h2>
+        <p class="muted">Your trainer has created this quiz but hasn't added questions yet.</p>
+        <a href="{{ url_for('main.course_detail', course_id=course.id) }}" class="btn" style="margin-top: 16px;">
+            Return to Course Playlist
+        </a>
+    </div>
+
+    {% elif result_mode %}
+    <!-- RESULT REVIEW MODE -->
+    <section class="quiz-questions-review" style="display: flex; flex-direction: column; gap: 20px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <h2 style="font-size: 20px; margin: 0;">Answer Review</h2>
+            <span class="muted" style="font-size: 13px;">Review your answers and the correct solutions below</span>
+        </div>
+
+        {% for q in questions %}
+        {% set ans = answers_map.get(q.id|string) %}
+        {% set user_sel = ans.selected if ans else None %}
+        {% set is_correct = ans.is_correct if ans else False %}
+        <div class="card quiz-question-review-card" style="border-radius: 14px; padding: 22px; border: 1px solid var(--line); background: var(--bg-card, var(--card, #fff));">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 14px;">
+                <span style="font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px;">
+                    Question {{ loop.index }} of {{ questions|length }}
+                </span>
+                {% if is_correct %}
+                    <span style="background: rgba(34, 197, 94, 0.12); color: #16a34a; font-weight: 700; font-size: 12px; padding: 4px 10px; border-radius: 999px;">
+                        ✓ Correct (+1)
+                    </span>
+                {% else %}
+                    <span style="background: rgba(239, 68, 68, 0.12); color: #dc2626; font-weight: 700; font-size: 12px; padding: 4px 10px; border-radius: 999px;">
+                        ✗ Incorrect (0)
+                    </span>
+                {% endif %}
+            </div>
+
+            <h3 style="font-size: 17px; line-height: 1.4; margin: 0 0 18px;">{{ q.question }}</h3>
+
+            <div class="review-options-grid" style="display: flex; flex-direction: column; gap: 10px;">
+                {% for opt_key, opt_val in [('A', q.option_a), ('B', q.option_b), ('C', q.option_c), ('D', q.option_d)] %}
+                {% set is_opt_correct = (opt_key == q.correct_option) %}
+                {% set is_user_pick = (opt_key == user_sel) %}
+
+                <div class="quiz-option-review-pill {% if is_opt_correct %}option-correct{% elif is_user_pick and not is_correct %}option-incorrect{% endif %}" 
+                     style="display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-radius: 10px; border: 1.5px solid {% if is_opt_correct %}#16a34a{% elif is_user_pick and not is_correct %}#dc2626{% else %}var(--line){% endif %}; background: {% if is_opt_correct %}rgba(34, 197, 94, 0.08){% elif is_user_pick and not is_correct %}rgba(239, 68, 68, 0.06){% else %}transparent{% endif %};">
+                    <div style="display: flex; align-items: center; gap: 12px;">
+                        <span style="width: 28px; height: 28px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px; background: {% if is_opt_correct %}#16a34a; color: #fff;{% elif is_user_pick and not is_correct %}#dc2626; color: #fff;{% else %}rgba(0,0,0,0.06); color: var(--ink);{% endif %}">
+                            {{ opt_key }}
+                        </span>
+                        <span style="font-size: 14.5px; font-weight: {% if is_opt_correct or is_user_pick %}600{% else %}400{% endif %};">
+                            {{ opt_val }}
+                        </span>
+                    </div>
+
+                    <div>
+                        {% if is_opt_correct and is_user_pick %}
+                            <span style="font-size: 12px; font-weight: 700; color: #16a34a;">Your Answer (Correct) ✓</span>
+                        {% elif is_opt_correct %}
+                            <span style="font-size: 12px; font-weight: 700; color: #16a34a;">Correct Answer ✓</span>
+                        {% elif is_user_pick %}
+                            <span style="font-size: 12px; font-weight: 700; color: #dc2626;">Your Answer ✗</span>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endfor %}
+
+        <div style="display: flex; justify-content: center; gap: 14px; margin-top: 16px;">
+            <a href="{{ url_for('main.take_quiz', course_id=course.id, quiz_id=quiz.id) }}" class="btn" style="padding: 12px 28px; font-size: 15px;">
+                🔄 Retake Quiz
+            </a>
+            <a href="{{ url_for('main.course_detail', course_id=course.id) }}" class="btn btn-outline" style="padding: 12px 28px; font-size: 15px;">
+                ← Back to Course Playlist
+            </a>
+        </div>
+    </section>
+
+    {% else %}
+    <!-- ACTIVE QUIZ TAKING FORM -->
+    <form method="POST" action="{{ url_for('main.take_quiz', course_id=course.id, quiz_id=quiz.id) }}" id="quizForm">
+        <section class="quiz-questions-list" style="display: flex; flex-direction: column; gap: 24px;">
+            {% for q in questions %}
+            <div class="card take-quiz-card" style="border-radius: 14px; padding: 24px; border: 1px solid var(--line); background: var(--bg-card, var(--card, #fff));">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                    <span style="font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px;">
+                        Question {{ loop.index }} of {{ questions|length }}
+                    </span>
+                    <span style="font-size: 12px; color: var(--muted);">1 point</span>
+                </div>
+
+                <h3 style="font-size: 17px; line-height: 1.4; margin: 0 0 20px; font-weight: 600;">
+                    {{ q.question }}
+                </h3>
+
+                <div class="quiz-radio-options" style="display: flex; flex-direction: column; gap: 10px;">
+                    {% for opt_key, opt_val in [('A', q.option_a), ('B', q.option_b), ('C', q.option_c), ('D', q.option_d)] %}
+                    <label class="quiz-choice-option" style="display: flex; align-items: center; gap: 14px; padding: 14px 16px; border-radius: 10px; border: 1.5px solid var(--line); cursor: pointer; transition: all 0.15s ease;">
+                        <input type="radio" name="question_{{ q.id }}" value="{{ opt_key }}" required style="width: 18px; height: 18px; accent-color: var(--primary, #2563eb); cursor: pointer;">
+                        <span class="opt-label-badge" style="width: 26px; height: 26px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-weight: 700; font-size: 12px; background: rgba(0,0,0,0.06);">
+                            {{ opt_key }}
+                        </span>
+                        <span class="opt-label-text" style="font-size: 14.5px; flex: 1;">
+                            {{ opt_val }}
+                        </span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+
+            <div class="quiz-submit-bar" style="display: flex; justify-content: space-between; align-items: center; padding: 20px; background: var(--bg-card, var(--card, #fff)); border: 1px solid var(--line); border-radius: 14px; margin-top: 8px;">
+                <div class="muted" style="font-size: 13.5px;">
+                    Make sure to answer all questions before submitting.
+                </div>
+                <div style="display: flex; gap: 12px;">
+                    <a href="{{ url_for('main.course_detail', course_id=course.id) }}" class="btn btn-outline" style="padding: 12px 20px;">
+                        Cancel
+                    </a>
+                    <button type="submit" class="btn" style="padding: 12px 30px; font-size: 15px; font-weight: 600;">
+                        ✓ Submit Answers
+                    </button>
+                </div>
+            </div>
+        </section>
+    </form>
+    {% endif %}
+</main>
+
+<style>
+.quiz-choice-option:hover {
+    border-color: #2563eb !important;
+    background: rgba(37, 99, 235, 0.04) !important;
+}
+.quiz-choice-option:has(input:checked) {
+    border-color: #2563eb !important;
+    background: rgba(37, 99, 235, 0.08) !important;
+}
+</style>
+{% endblock %}
+

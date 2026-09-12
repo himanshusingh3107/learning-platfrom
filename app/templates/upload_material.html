@@ -16,10 +16,21 @@
         <label for="location">Target location (optional)</label>
         <input id="location" name="location" type="text" placeholder="Country or city">
 
+        <label for="course_id">Course (optional - add to course library)</label>
+        <select id="course_id" name="course_id">
+            <option value="">General Library (No course assigned)</option>
+            {% for c in courses %}
+            <option value="{{ c.id }}" {% if selected_course_id == c.id %}selected{% endif %}>
+                {{ c.title }}
+            </option>
+            {% endfor %}
+        </select>
+        <small class="form-hint">Assigning to a course makes this note or lecture available in that course's library.</small>
+
         <label for="material_type">Material type</label>
         <select id="material_type" name="material_type">
-            <option value="note">Course Note</option>
-            <option value="video">Video Solution</option>
+            <option value="note">Course Note (PDF, DOC, PPT, TXT)</option>
+            <option value="video">Video Lecture (MP4, WEBM)</option>
         </select>
 
         <label for="file">File</label>

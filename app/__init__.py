@@ -170,6 +170,12 @@ def _upgrade_existing_database():
             with db.engine.begin() as connection:
                 connection.execute(text("ALTER TABLE course_material ADD COLUMN location VARCHAR(120)"))
 
+    if "course" in tables:
+        columns = {column["name"] for column in inspector.get_columns("course")}
+        if "tags" not in columns:
+            with db.engine.begin() as connection:
+                connection.execute(text("ALTER TABLE course ADD COLUMN tags VARCHAR(500)"))
+
     if "course_post" in tables:
         columns = {column["name"] for column in inspector.get_columns("course_post")}
         if "tags" not in columns:

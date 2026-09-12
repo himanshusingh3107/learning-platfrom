@@ -1,26 +1,52 @@
 {% extends "base.html" %}
 
 {% block content %}
-<h1>My Course Notes</h1>
-<a class="btn" href="{{ url_for('trainer.upload_material') }}">Upload Course Note</a>
-
-<section class="materials">
-    {% for material in materials %}
-    <article class="dashboard-card material-card">
-        <p class="material-tag">{{ "Video Solution" if material.material_type == "video" else "Course Note" }}</p>
-        <h2>{{ material.title }}</h2>
-        <p>{{ material.description or "No description provided." }}</p>
-        <a class="btn" href="{{ url_for('trainer.download_material', material_id=material.id) }}">
-            Download {{ material.original_filename }}
-        </a>
-        <form method="POST" action="{{ url_for('trainer.delete_material', material_id=material.id) }}" onsubmit="return confirm('Delete this course note?');">
-            <button class="danger-button" type="submit">Delete Note</button>
-        </form>
-    </article>
-    {% else %}
-        <div class="dashboard-card">
-            <p>You have not uploaded any course notes yet.</p>
+<main class="app-main">
+    <section class="dashboard-intro">
+        <div>
+            <p class="eyebrow">Trainer Library</p>
+            <h1>My Content Library</h1>
+            <p class="muted">Review all your notes and video lectures. You can organize them into your courses from here or within My Courses.</p>
         </div>
-    {% endfor %}
-</section>
+    </section>
+
+    <div style="margin-bottom: 20px; display: flex; gap: 10px; flex-wrap: wrap;">
+        <a class="btn" href="{{ url_for('trainer.upload_material') }}">＋ Upload Resource</a>
+        <a class="btn" style="background: transparent; color: var(--ink); border: 1px solid var(--line);" href="{{ url_for('trainer.manage_courses') }}">📚 My Courses</a>
+    </div>
+
+    <section class="materials">
+        {% for material in materials %}
+        <article class="dashboard-card material-card">
+            <div style="display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 8px;">
+                <span class="material-tag">{{ "Video Lecture" if material.material_type == "video" else "Course Note" }} ({{ material.file_type|upper }})</span>
+                {% if material.course %}
+                <span class="material-tag" style="background: rgba(123, 99, 216, 0.15); color: var(--purple-dark);">Course: {{ material.course.title }}</span>
+                {% else %}
+                <span class="material-tag" style="background: rgba(149, 165, 166, 0.2); color: var(--muted);">Unassigned</span>
+                {% endif %}
+            </div>
+            <h2>{{ material.title }}</h2>
+            <p>{{ material.description or "No description provided." }}</p>
+            <div style="display: flex; gap: 8px; margin-top: auto; padding-top: 14px; flex-wrap: wrap;">
+                <a class="btn" href="{{ url_for('trainer.download_material', material_id=material.id) }}">
+                    Download {{ material.original_filename }}
+                </a>
+                {% if material.course %}
+                <a class="btn" style="background: transparent; color: var(--ink); border: 1px solid var(--line);" href="{{ url_for('trainer.edit_course', course_id=material.course.id) }}">
+                    Manage in Course
+                </a>
+                {% endif %}
+                <form method="POST" action="{{ url_for('trainer.delete_material', material_id=material.id) }}" onsubmit="return confirm('Delete this resource?');" style="margin: 0;">
+                    <button class="danger-button" type="submit">Delete</button>
+                </form>
+            </div>
+        </article>
+        {% else %}
+            <div class="dashboard-card" style="grid-column: 1 / -1;">
+                <p>You have not uploaded any notes or lectures yet. <a href="{{ url_for('trainer.upload_material') }}">Upload your first resource</a> to get started.</p>
+            </div>
+        {% endfor %}
+    </section>
+</main>
 {% endblock %}

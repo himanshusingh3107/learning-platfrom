@@ -20,6 +20,29 @@
 <section class="trainer-results">
     <div class="section-heading courses-heading-card">
         <div>
+            <p class="eyebrow">Courses</p>
+            <h2>Matching Courses</h2>
+        </div>
+        <span class="section-count">{{ courses|length }} courses</span>
+    </div>
+    {% if courses %}
+        <div class="explore-course-grid">
+            {% for course in courses %}
+            <a class="explore-course-card" href="{{ url_for('main.course_detail', course_id=course.id) }}">
+                <span class="explore-course-label">Course</span>
+                <h3>{{ course.title }}</h3>
+                <p>{{ course.description or "No description added yet." }}</p>
+                <small>By {{ course.trainer.name }}</small>
+            </a>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="dashboard-card"><p>No courses matched your search.</p></div>
+    {% endif %}
+</section>
+<section class="trainer-results">
+    <div class="section-heading courses-heading-card">
+        <div>
             <p class="eyebrow">People</p>
             <h2>Matching Trainers</h2>
         </div>
@@ -85,8 +108,11 @@
             <p class="post-meta">By <a href="{{ url_for('main.trainer_profile', trainer_id=material.trainer.id) }}">{{ material.trainer.name }}</a></p>
             {% if material.description %}<p class="material-description">{{ material.description }}</p>{% endif %}
             <div class="material-actions">
-                <form method="POST" action="{{ url_for('main.toggle_material_like', material_id=material.id) }}">
-                    <button type="submit">Like</button>
+                <form method="POST" action="{{ url_for('main.toggle_material_like', material_id=material.id) }}" class="like-form" onsubmit="handleLikeSubmit(event, {{ material.id }})">
+                    <button type="submit" class="like-btn {{ 'liked' if material.id in liked_ids else '' }}" id="like-btn-{{ material.id }}" title="{{ 'Liked' if material.id in liked_ids else 'Like' }}">
+                        <span class="like-heart">{{ '♥' if material.id in liked_ids else '♡' }}</span>
+                        <span class="like-label">{{ 'Liked' if material.id in liked_ids else 'Like' }}</span>
+                    </button>
                 </form>
                 <a class="btn" href="{{ url_for('trainer.download_material', material_id=material.id) }}">Open</a>
             </div>
@@ -130,6 +156,30 @@
             });
         });
     });
+
+    function handleLikeSubmit(e, id) {
+        e.preventDefault();
+        const form = e.target;
+        const btn = document.getElementById('like-btn-' + id);
+        fetch(form.action, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                btn.classList.toggle('liked', data.liked);
+                const heart = btn.querySelector('.like-heart');
+                const label = btn.querySelector('.like-label');
+                if (heart) heart.textContent = data.liked ? '♥' : '♡';
+                if (label) label.textContent = data.liked ? 'Liked' : 'Like';
+                btn.title = data.liked ? 'Liked' : 'Like';
+            }
+        })
+        .catch(() => form.submit());
+    }
 </script>
 {% endif %}
 

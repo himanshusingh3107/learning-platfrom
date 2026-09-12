@@ -5,30 +5,81 @@
     <section class="dashboard-intro">
         <div>
             <p class="eyebrow">Trainer tools</p>
-            <h1>Launch a course</h1>
-            <p class="muted">Published courses appear in the trainee Explore Courses section.</p>
+            <h1>My Courses</h1>
+            <p class="muted">Manage all your courses. Each course acts as a library where you can add and organize notes and video lectures for trainees.</p>
         </div>
     </section>
 
     <section class="content-panel course-launch-panel">
-        <div class="section-heading"><div><p class="eyebrow">New course</p><h2>Course details</h2></div></div>
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">New course</p>
+                <h2>Launch a New Course</h2>
+            </div>
+        </div>
         <form method="POST" class="schedule-form">
-            <label>Course title<input name="title" maxlength="200" required></label>
-            <label>Course description<textarea name="description" rows="4" maxlength="5000" placeholder="What will learners explore?"></textarea></label>
-            <button type="submit">Launch course</button>
+            <label>Course title
+                <input name="title" maxlength="200" placeholder="e.g. Complete Python Masterclass" required>
+            </label>
+            <label>Tags
+                <input name="tags" maxlength="500" placeholder="e.g. Python, beginner, programming">
+            </label>
+            <label style="grid-column: 1 / -1;">Course description
+                <textarea name="description" rows="3" maxlength="5000" placeholder="What will learners explore in this course?"></textarea>
+            </label>
+            <div style="grid-column: 1 / -1;">
+                <button type="submit">Launch Course</button>
+            </div>
         </form>
     </section>
 
     <section class="content-panel">
-        <div class="section-heading"><div><p class="eyebrow">Published</p><h2>Your launched courses</h2></div></div>
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">Published</p>
+                <h2>All Your Courses ({{ courses|length }})</h2>
+            </div>
+        </div>
         <div class="explore-course-grid">
             {% for course in courses %}
             <article class="explore-course-card static-card">
                 <span class="explore-course-label">Live in Explore Courses</span>
                 <h3>{{ course.title }}</h3>
                 <p>{{ course.description or "No description added yet." }}</p>
+                
+                <div style="margin-top: auto; padding-top: 10px;">
+                    {% if course.tags %}
+                    <small style="display: block; margin-bottom: 4px; color: var(--muted); font-size: 11px;">Tags: {{ course.tags }}</small>
+                    {% endif %}
+                    <small style="display: block; margin-bottom: 12px; color: var(--teal-dark); font-weight: 700;">
+                        📚 {{ course.materials|length }} item{{ 's' if course.materials|length != 1 else '' }} in library
+                        ({{ course.materials|selectattr('material_type', 'equalto', 'note')|list|length }} notes,
+                         {{ course.materials|selectattr('material_type', 'equalto', 'video')|list|length }} lectures)
+                    </small>
+                    
+                    <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                        <a class="btn" href="{{ url_for('trainer.edit_course', course_id=course.id) }}" style="flex: 1; text-align: center; padding: 7px 10px; font-size: 12px;">
+                            ✏️ Edit & Library
+                        </a>
+                        <a class="btn" href="{{ url_for('trainer.edit_course', course_id=course.id) }}#add-content" style="background: transparent; color: var(--ink); border: 1px solid var(--line); padding: 7px 10px; font-size: 12px;" title="Add notes or lectures">
+                            ＋ Add Content
+                        </a>
+                        <a class="btn" href="{{ url_for('main.course_feed', course_id=course.id) }}" style="background: transparent; color: var(--ink); border: 1px solid var(--line); padding: 7px 10px; font-size: 12px;">
+                            Feed
+                        </a>
+                        <form method="POST" action="{{ url_for('trainer.delete_course', course_id=course.id) }}" onsubmit="return confirm('Delete this course? Associated notes and lectures will remain in your library.');" style="margin: 0;">
+                            <button type="submit" class="danger-button" style="padding: 7px 10px; font-size: 12px;" title="Delete course">
+                                🗑️
+                            </button>
+                        </form>
+                    </div>
+                </div>
             </article>
-            {% else %}<p class="muted">You have not launched a course yet.</p>{% endfor %}
+            {% else %}
+            <div style="grid-column: 1 / -1; padding: 24px 0;">
+                <p class="muted">You have not launched a course yet. Use the form above to launch your first course and start adding notes and lectures.</p>
+            </div>
+            {% endfor %}
         </div>
     </section>
 </main>

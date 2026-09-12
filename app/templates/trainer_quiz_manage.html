@@ -1,0 +1,203 @@
+{% extends "base.html" %}
+
+{% block content %}
+<main class="app-main quiz-manage-page">
+    <div style="margin-bottom: 16px;">
+        <a class="btn" style="background: transparent; color: var(--ink); border: 1px solid var(--line); display: inline-flex; align-items: center; gap: 6px;" href="{{ url_for('trainer.edit_course', course_id=course.id) }}">
+            ← Back to {{ course.title }}
+        </a>
+    </div>
+
+    <!-- Quiz Header -->
+    <section class="dashboard-intro">
+        <div>
+            <p class="eyebrow">Assessment & Testing</p>
+            <h1>Quiz: {{ quiz.title }}</h1>
+            <p class="muted">Organize quiz questions, set correct options, and review trainee scores for this course assessment.</p>
+        </div>
+        <div style="display: flex; gap: 8px; align-items: center;">
+            <form method="POST" action="{{ url_for('trainer.delete_quiz', quiz_id=quiz.id) }}" onsubmit="return confirm('Delete this quiz completely? All questions and trainee attempts will be deleted.');" style="margin: 0;">
+                <button type="submit" class="danger-button" style="padding: 10px 16px;">🗑️ Delete Quiz</button>
+            </form>
+        </div>
+    </section>
+
+    <!-- Quiz Details & Add Question Grid -->
+    <div class="dashboard-grid">
+        <!-- Edit Quiz Details -->
+        <section class="content-panel wide-panel">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">Settings</p>
+                    <h2>Quiz Information</h2>
+                </div>
+            </div>
+            <form method="POST" action="{{ url_for('trainer.manage_quiz', quiz_id=quiz.id) }}" class="schedule-form">
+                <label>Quiz Title
+                    <input name="title" maxlength="200" value="{{ quiz.title }}" required>
+                </label>
+                <label style="grid-column: 1 / -1;">Description / Instructions
+                    <textarea name="description" rows="2" maxlength="1000" placeholder="Brief instructions for trainees taking this quiz...">{{ quiz.description or '' }}</textarea>
+                </label>
+                <div style="grid-column: 1 / -1;">
+                    <button type="submit">Save Quiz Info</button>
+                </div>
+            </form>
+        </section>
+
+        <!-- Quiz Quick Stats -->
+        <section class="content-panel activity-panel">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">Overview</p>
+                    <h2>Quiz Stats</h2>
+                </div>
+            </div>
+            <div style="display: flex; flex-direction: column; gap: 14px;">
+                <div class="metric-card accent-cyan" style="padding: 14px;">
+                    <span>Total Questions</span>
+                    <strong style="font-size: 24px;">{{ questions|length }}</strong>
+                </div>
+                <div class="metric-card accent-orange" style="padding: 14px;">
+                    <span>Trainee Attempts</span>
+                    <strong style="font-size: 24px;">{{ attempts|length }}</strong>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Add Question Section -->
+    <section class="content-panel" id="add-question">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">Question Builder</p>
+                <h2>Add Multiple-Choice Question</h2>
+            </div>
+        </div>
+        <form method="POST" action="{{ url_for('trainer.add_quiz_question', quiz_id=quiz.id) }}" class="schedule-form">
+            <label style="grid-column: 1 / -1;">Question Text
+                <textarea name="question" rows="3" required placeholder="e.g. Which keyword is used to define a function in Python?"></textarea>
+            </label>
+
+            <label>Option A
+                <input name="option_a" maxlength="255" required placeholder="e.g. func">
+            </label>
+            <label>Option B
+                <input name="option_b" maxlength="255" required placeholder="e.g. def">
+            </label>
+            <label>Option C
+                <input name="option_c" maxlength="255" required placeholder="e.g. function">
+            </label>
+            <label>Option D
+                <input name="option_d" maxlength="255" required placeholder="e.g. define">
+            </label>
+
+            <label style="grid-column: 1 / -1;">Select Correct Option
+                <select name="correct_option" required style="max-width: 300px;">
+                    <option value="A">Option A is Correct</option>
+                    <option value="B">Option B is Correct</option>
+                    <option value="C">Option C is Correct</option>
+                    <option value="D">Option D is Correct</option>
+                </select>
+            </label>
+
+            <div style="grid-column: 1 / -1;">
+                <button type="submit">＋ Add Question to Quiz</button>
+            </div>
+        </form>
+    </section>
+
+    <!-- Existing Questions List -->
+    <section class="content-panel">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">Questions List</p>
+                <h2>Questions in this Quiz ({{ questions|length }})</h2>
+            </div>
+            <a class="btn" href="#add-question">＋ Add Question</a>
+        </div>
+
+        {% if questions %}
+        <div class="quiz-questions-admin-list">
+            {% for q in questions %}
+            <article class="quiz-question-admin-card content-panel" style="margin-bottom: 16px; border: 2px solid var(--line);">
+                <div class="quiz-question-header">
+                    <div style="display: flex; align-items: baseline; gap: 10px;">
+                        <span class="quiz-question-num">Q{{ loop.index }}</span>
+                        <h3 style="margin: 0; font-size: 16px;">{{ q.question }}</h3>
+                    </div>
+                    <form method="POST" action="{{ url_for('trainer.delete_quiz_question', question_id=q.id) }}" onsubmit="return confirm('Remove this question?');" style="margin: 0;">
+                        <button type="submit" class="danger-button" style="padding: 6px 10px; font-size: 12px;">Delete</button>
+                    </form>
+                </div>
+
+                <div class="quiz-options-preview-grid">
+                    <div class="quiz-option-pill {{ 'correct' if q.correct_option == 'A' else '' }}">
+                        <b>A:</b> {{ q.option_a }} {% if q.correct_option == 'A' %}<span class="correct-tag">✓ Correct</span>{% endif %}
+                    </div>
+                    <div class="quiz-option-pill {{ 'correct' if q.correct_option == 'B' else '' }}">
+                        <b>B:</b> {{ q.option_b }} {% if q.correct_option == 'B' %}<span class="correct-tag">✓ Correct</span>{% endif %}
+                    </div>
+                    <div class="quiz-option-pill {{ 'correct' if q.correct_option == 'C' else '' }}">
+                        <b>C:</b> {{ q.option_c }} {% if q.correct_option == 'C' %}<span class="correct-tag">✓ Correct</span>{% endif %}
+                    </div>
+                    <div class="quiz-option-pill {{ 'correct' if q.correct_option == 'D' else '' }}">
+                        <b>D:</b> {{ q.option_d }} {% if q.correct_option == 'D' %}<span class="correct-tag">✓ Correct</span>{% endif %}
+                    </div>
+                </div>
+            </article>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div style="padding: 24px; text-align: center;">
+            <p class="muted">No questions added yet. Use the form above to add questions for your trainees.</p>
+        </div>
+        {% endif %}
+    </section>
+
+    <!-- Trainee Attempts & Results Table -->
+    <section class="content-panel">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">Student Submissions</p>
+                <h2>Trainee Attempts & Scores ({{ attempts|length }})</h2>
+            </div>
+        </div>
+
+        {% if attempts %}
+        <div class="table-wrap">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Trainee</th>
+                        <th>User Code</th>
+                        <th>Score</th>
+                        <th>Percentage</th>
+                        <th>Submitted Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for attempt in attempts %}
+                    <tr>
+                        <td><strong>{{ attempt.trainee.name }}</strong></td>
+                        <td>{{ attempt.trainee.user_code }}</td>
+                        <td><strong>{{ attempt.score }} / {{ attempt.total_questions }}</strong></td>
+                        <td>
+                            {% set pct = (attempt.score / attempt.total_questions * 100)|round if attempt.total_questions > 0 else 0 %}
+                            <span class="course-progress-pill" style="font-size: 12px; color: {{ '#10b981' if pct >= 60 else '#ef4444' }}; background: {{ 'rgba(16, 185, 129, 0.12)' if pct >= 60 else 'rgba(239, 68, 68, 0.12)' }};">
+                                {{ pct }}%
+                            </span>
+                        </td>
+                        <td>{{ attempt.submitted_at.strftime('%b %d, %Y · %I:%M %p') }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <p class="muted" style="padding: 12px 0;">No trainees have submitted answers for this quiz yet.</p>
+        {% endif %}
+    </section>
+</main>
+{% endblock %}
+

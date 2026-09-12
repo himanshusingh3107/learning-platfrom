@@ -4,10 +4,6 @@
 <main class="app-main">
     <section class="dashboard-intro">
         <div>
-        <section class="content-panel notification-panel" id="notifications">
-            <div class="section-heading"><div><p class="eyebrow">Administration</p><h2>Admin messages</h2></div><form method="POST" action="{{ url_for('main.mark_notifications_read') }}"><button type="submit">Mark all read</button></form></div>
-            {% for notification in notifications %}<div class="notification-row {{ 'unread' if not notification.is_read else '' }}"><strong>{{ notification.title }}</strong><small>{{ notification.message }}</small></div>{% else %}<p class="muted">Messages from the administrator will appear here.</p>{% endfor %}
-        </section>
             <p class="eyebrow">{{ user.role|capitalize }} dashboard</p>
             <h1>Good to see you, {{ user.name.split(' ')[0] }}.</h1>
             <p class="muted">Here is what is happening in your learning space today.</p>
@@ -20,7 +16,7 @@
 
     {% if user.role == "trainee" %}
     <div class="stats-grid">
-        <article class="metric-card accent-cyan"><span>Enrolled courses</span><strong>{{ stats.materials }}</strong><small>Available to explore</small></article>
+        <article class="metric-card accent-cyan"><span>Enrolled courses</span><strong>{{ enrolled_courses|length }}</strong><small>Active courses</small></article>
         <article class="metric-card accent-orange"><span>Learning activity</span><strong>{{ history|length }}</strong><small>Recent interactions</small></article>
         <article class="metric-card accent-lilac"><span>Pending assignments</span><strong>02</strong><small>Due this week</small></article>
     </div>
@@ -38,17 +34,29 @@
         </section>
     </div>
     <section class="content-panel explore-courses-panel">
-        <div class="section-heading"><div><p class="eyebrow">Learn something new</p><h2>Explore Courses</h2></div></div>
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">Continue learning</p>
+                <h2>Enrolled Courses</h2>
+            </div>
+            <a href="{{ url_for('main.explore_courses') }}">Explore more courses →</a>
+        </div>
         <div class="explore-course-grid">
-            {% for course in explore_courses %}
-            <a class="explore-course-card" href="{{ url_for('main.course_feed', course_id=course.id) }}">
-                <span class="explore-course-label">Launched course</span>
+            {% for course in enrolled_courses %}
+            <a class="explore-course-card" href="{{ url_for('main.course_detail', course_id=course.id) }}">
+                <span class="explore-course-label">Enrolled course</span>
                 <h3>{{ course.title }}</h3>
                 <p>{{ course.description or "A learning path created by your trainer." }}</p>
-                <small>By {{ course.trainer.name }}</small>
+                <div class="course-card-footer">
+                    <small>By {{ course.trainer.name }}</small>
+                    <span class="course-progress-pill">{{ course.get_progress_for_trainee(user.id) }}% completed</span>
+                </div>
             </a>
             {% else %}
-            <p class="muted">Courses launched by trainers will appear here.</p>
+            <div class="empty-card" style="grid-column: 1 / -1; padding: 24px; text-align: center;">
+                <p class="muted" style="margin-bottom: 12px;">You are not enrolled in any courses yet.</p>
+                <a class="btn" href="{{ url_for('main.explore_courses') }}">Browse & Enroll in Courses</a>
+            </div>
             {% endfor %}
         </div>
     </section>
@@ -98,11 +106,59 @@
     </section>
 
     {% elif user.role == "trainer" %}
-    <div class="stats-grid"><article class="metric-card accent-cyan"><span>Published resources</span><strong>{{ stats.materials }}</strong><small>Across the platform</small></article><article class="metric-card accent-orange"><span>Active trainees</span><strong>{{ stats.trainees }}</strong><small>Ready to learn</small></article><article class="metric-card accent-lilac"><span>Upcoming classes</span><strong>04</strong><small>This month</small></article></div>
-    <div class="dashboard-grid">
-        <section class="content-panel wide-panel"><div class="section-heading"><div><p class="eyebrow">Trainer tools</p><h2>Manage your teaching</h2></div></div><div class="action-grid"><a class="action-card" href="{{ url_for('trainer.upload_material') }}"><span>＋</span><strong>Upload resource</strong><small>Add notes or videos to your library</small></a><a class="action-card" href="{{ url_for('trainer.library') }}"><span>▤</span><strong>Course library</strong><small>Review your published content</small></a><a class="action-card" href="{{ url_for('trainer.manage_courses') }}"><span>◈</span><strong>Launch course</strong><small>Publish it in Explore Courses</small></a></div></section>
-        <section class="content-panel activity-panel"><div class="section-heading"><div><p class="eyebrow">Plan ahead</p><h2>Upcoming classes</h2></div><a href="{{ url_for('trainer.manage_classes') }}">Manage</a></div>{% for class_schedule in upcoming_classes[:3] %}<div class="schedule-row"><b>{{ class_schedule.scheduled_for.strftime('%d') }}</b><div><strong>{{ class_schedule.title }}</strong><small>{{ class_schedule.scheduled_for.strftime('%A · %I:%M %p') }}</small></div></div>{% else %}<p class="muted">No classes scheduled yet.</p>{% endfor %}</section>
+    <div class="stats-grid">
+        <article class="metric-card accent-cyan"><span>Published courses</span><strong>{{ stats.courses }}</strong><small>Courses launched</small></article>
+        <article class="metric-card accent-orange"><span>Learning resources</span><strong>{{ stats.materials }}</strong><small>Notes & video lectures</small></article>
+        <article class="metric-card accent-lilac"><span>Active trainees</span><strong>{{ stats.trainees }}</strong><small>Ready to learn</small></article>
     </div>
+    <div class="dashboard-grid">
+        <section class="content-panel wide-panel">
+            <div class="section-heading"><div><p class="eyebrow">Trainer tools</p><h2>Manage your teaching</h2></div></div>
+            <div class="action-grid">
+                <a class="action-card" href="{{ url_for('trainer.manage_courses') }}"><span>📚</span><strong>My Courses</strong><small>View & edit your courses, notes & lectures</small></a>
+                <a class="action-card" href="{{ url_for('trainer.upload_material') }}"><span>＋</span><strong>Upload resource</strong><small>Add notes or video lectures</small></a>
+                <a class="action-card" href="{{ url_for('trainer.library') }}"><span>▤</span><strong>Content library</strong><small>Review all uploaded content</small></a>
+                <a class="action-card" href="{{ url_for('trainer.manage_classes') }}"><span>🗓</span><strong>Upcoming classes</strong><small>Plan and schedule sessions</small></a>
+            </div>
+        </section>
+        <section class="content-panel activity-panel">
+            <div class="section-heading"><div><p class="eyebrow">Plan ahead</p><h2>Upcoming classes</h2></div><a href="{{ url_for('trainer.manage_classes') }}">Manage</a></div>
+            {% for class_schedule in upcoming_classes[:3] %}<div class="schedule-row"><b>{{ class_schedule.scheduled_for.strftime('%d') }}</b><div><strong>{{ class_schedule.title }}</strong><small>{{ class_schedule.scheduled_for.strftime('%A · %I:%M %p') }}</small></div></div>{% else %}<p class="muted">No classes scheduled yet.</p>{% endfor %}
+        </section>
+    </div>
+    <section class="content-panel trainer-courses-panel">
+        <div class="section-heading">
+            <div>
+                <p class="eyebrow">Your Teaching</p>
+                <h2>My Courses ({{ trainer_courses|length }})</h2>
+            </div>
+            <a class="btn" href="{{ url_for('trainer.manage_courses') }}">＋ Launch New Course</a>
+        </div>
+        <div class="explore-course-grid">
+            {% for course in trainer_courses %}
+            <article class="explore-course-card static-card">
+                <span class="explore-course-label">Launched Course</span>
+                <h3>{{ course.title }}</h3>
+                <p>{{ course.description or "No description added yet." }}</p>
+                <div style="margin-top: auto; padding-top: 10px;">
+                    <small style="display: block; margin-bottom: 8px; color: var(--teal-dark); font-weight: 700;">
+                        📚 {{ course.materials|length }} resource{{ 's' if course.materials|length != 1 else '' }} in library
+                        ({{ course.materials|selectattr('material_type', 'equalto', 'note')|list|length }} notes,
+                         {{ course.materials|selectattr('material_type', 'equalto', 'video')|list|length }} lectures)
+                    </small>
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <a class="btn" href="{{ url_for('trainer.edit_course', course_id=course.id) }}" style="flex: 1; text-align: center; padding: 7px 10px; font-size: 12px;">✏️ Edit & Library</a>
+                        <a class="btn" href="{{ url_for('main.course_feed', course_id=course.id) }}" style="background: transparent; color: var(--ink); border: 1px solid var(--line); padding: 7px 12px; font-size: 12px;">Feed</a>
+                    </div>
+                </div>
+            </article>
+            {% else %}
+            <div style="grid-column: 1 / -1; padding: 18px 0;">
+                <p class="muted">You have not launched any courses yet. <a href="{{ url_for('trainer.manage_courses') }}">Launch your first course</a> to organize your notes and lectures into a library.</p>
+            </div>
+            {% endfor %}
+        </div>
+    </section>
     <section class="content-panel notification-panel" id="notifications">
         <div class="section-heading"><div><p class="eyebrow">Administration</p><h2>Admin messages</h2></div><form method="POST" action="{{ url_for('main.mark_notifications_read') }}"><button type="submit">Mark all read</button></form></div>
         {% for notification in notifications %}<div class="notification-row {{ 'unread' if not notification.is_read else '' }}"><strong>{{ notification.title }}</strong><small>{{ notification.message }}</small></div>{% else %}<p class="muted">Messages from the administrator will appear here.</p>{% endfor %}

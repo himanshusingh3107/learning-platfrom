@@ -6,7 +6,7 @@
     <meta charset="UTF-8">
 
     <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
+          content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 
     <title>Learning Platform</title>
 
@@ -23,17 +23,17 @@
     }
 </script>
 
-<div class="app-shell">
+<div class="app-shell {{ 'is-guest' if not current_user.is_authenticated else '' }}">
+    {% if current_user.is_authenticated %}
     <aside class="side-rail" aria-label="Sidebar navigation">
         <div class="brand-badge">L</div>
-        {% if current_user.is_authenticated %}
-            <a class="rail-button {{ 'active' if request.endpoint == 'main.dashboard' else '' }}" href="{{ url_for('main.dashboard') }}" aria-label="Dashboard" title="Dashboard">⌂</a>
-            <a class="rail-button {{ 'active' if request.endpoint in ['main.courses', 'main.index'] else '' }}" href="{{ url_for('main.courses') }}" aria-label="Solutions" title="Solutions">▣</a>
-            <a class="rail-button {{ 'active' if request.endpoint == 'main.explore_courses' else '' }}" href="{{ url_for('main.explore_courses') }}" aria-label="Explore Courses" title="Explore Courses">&#128218;</a>
-            <a class="rail-button {{ 'active' if request.endpoint == 'main.settings' else '' }}" href="{{ url_for('main.settings') }}" aria-label="Settings" title="Settings">⚙</a>
-            <a class="rail-button {{ 'active' if request.endpoint == 'main.profile' else '' }}" href="{{ url_for('main.profile') }}" aria-label="Profile" title="Profile">☑</a>
-        {% endif %}
+        <a class="rail-button {{ 'active' if request.endpoint == 'main.dashboard' else '' }}" href="{{ url_for('main.dashboard') }}" aria-label="Dashboard" title="Dashboard">⌂</a>
+        <a class="rail-button {{ 'active' if request.endpoint in ['main.courses', 'main.index'] else '' }}" href="{{ url_for('main.courses') }}" aria-label="Solutions" title="Solutions">▣</a>
+        <a class="rail-button {{ 'active' if request.endpoint in ['main.explore_courses', 'main.course_detail'] else '' }}" href="{{ url_for('main.explore_courses') }}" aria-label="{{ 'Enrolled Courses' if current_user.role == 'trainee' else 'Courses' }}" title="{{ 'Enrolled Courses' if current_user.role == 'trainee' else 'Courses' }}">&#128218;</a>
+        <a class="rail-button {{ 'active' if request.endpoint == 'main.settings' else '' }}" href="{{ url_for('main.settings') }}" aria-label="Settings" title="Settings">⚙</a>
+        <a class="rail-button {{ 'active' if request.endpoint == 'main.profile' else '' }}" href="{{ url_for('main.profile') }}" aria-label="Profile" title="Profile">☑</a>
     </aside>
+    {% endif %}
 
     <div class="workspace-panel">
         <nav class="topbar">
@@ -53,6 +53,11 @@
                 {% endif %}
             </div>
             {% if current_user.is_authenticated %}
+                <form class="nav-search" method="GET" action="{{ url_for('main.index') }}" role="search">
+                    <label class="sr-only" for="site-search">Search learning content</label>
+                    <input id="site-search" name="q" type="search" value="{{ request.args.get('q', '') if request.endpoint == 'main.index' else '' }}" placeholder="Search trainers, courses, videos...">
+                    <button type="submit" aria-label="Search">&#128269;</button>
+                </form>
                 <div class="top-actions">
                     <a class="icon-button" href="{{ url_for('main.settings') }}" aria-label="Settings">&#9881;</a>
                     <a class="notification-button" href="{{ url_for('main.dashboard') }}#notifications" aria-label="Notifications">&#128276;<b>{{ current_user.notifications|selectattr('is_read', 'equalto', false)|list|length }}</b></a>

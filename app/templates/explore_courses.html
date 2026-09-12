@@ -10,26 +10,56 @@
         </div>
     </section>
 
+    <div class="content-tabs" style="margin-bottom: 24px;">
+        <button class="course-explore-tab-btn active" onclick="showExploreFilter('all', this)">All Courses ({{ courses|length }})</button>
+        {% if current_user.role == "trainee" %}
+        <button class="course-explore-tab-btn" onclick="showExploreFilter('enrolled', this)">My Enrolled Courses ({{ enrolled_course_ids|length }})</button>
+        {% endif %}
+    </div>
+
     <section class="explore-course-grid">
         {% for course in courses %}
-        <article class="explore-course-card static-card">
+        <article class="explore-course-card static-card explore-item {{ 'is-enrolled-item' if course.id in enrolled_course_ids else 'not-enrolled-item' }}">
             <span class="explore-course-label">Launched course</span>
-            <h3>{{ course.title }}</h3>
+            <h3><a href="{{ url_for('main.course_detail', course_id=course.id) }}" style="color: inherit; text-decoration: none;">{{ course.title }}</a></h3>
             <p>{{ course.description or "A learning path created by your trainer." }}</p>
             <small>By {{ course.trainer.name }}</small>
             {% if current_user.role == "trainee" %}
                 {% if course.id in enrolled_course_ids %}
-                    <span class="enrolled-status">Enrolled</span>
+                    <div style="display: flex; gap: 8px; margin-top: 14px; flex-direction: column;">
+                        <span class="enrolled-status" style="margin-top: 0;">Enrolled ✓</span>
+                        <a class="btn" href="{{ url_for('main.course_detail', course_id=course.id) }}" style="text-align: center; font-size: 12px; padding: 8px 12px;">Open Playlist & Details →</a>
+                    </div>
                 {% else %}
-                    <form method="POST" action="{{ url_for('main.enroll_in_course', course_id=course.id) }}">
-                        <button type="submit">Enroll now</button>
-                    </form>
+                    <div style="display: flex; gap: 8px; margin-top: 14px; flex-direction: column;">
+                        <form method="POST" action="{{ url_for('main.enroll_in_course', course_id=course.id) }}" style="margin: 0;">
+                            <button type="submit">Enroll now</button>
+                        </form>
+                        <a class="btn btn-outline" href="{{ url_for('main.course_detail', course_id=course.id) }}" style="text-align: center; font-size: 12px; padding: 8px 12px;">Preview Course</a>
+                    </div>
                 {% endif %}
+            {% else %}
+                <a class="btn" href="{{ url_for('main.course_detail', course_id=course.id) }}" style="margin-top: 14px; text-align: center; font-size: 12px; padding: 8px 12px;">View Course Playlist</a>
             {% endif %}
         </article>
         {% else %}
-        <div class="content-panel"><p class="muted">No trainer has launched a course yet.</p></div>
+        <div class="content-panel" style="grid-column: 1 / -1;"><p class="muted">No trainer has launched a course yet.</p></div>
         {% endfor %}
     </section>
+
+    <script>
+        function showExploreFilter(type, btn) {
+            document.querySelectorAll('.course-explore-tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+
+            document.querySelectorAll('.explore-item').forEach(el => {
+                if (type === 'all') {
+                    el.style.display = 'flex';
+                } else if (type === 'enrolled') {
+                    el.style.display = el.classList.contains('is-enrolled-item') ? 'flex' : 'none';
+                }
+            });
+        }
+    </script>
 </main>
 {% endblock %}

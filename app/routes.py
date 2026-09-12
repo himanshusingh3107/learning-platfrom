@@ -1,7 +1,8 @@
 import os
+import json
 import uuid
-from datetime import datetime
-from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, send_from_directory
+from datetime import datetime, timedelta
+from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, send_from_directory, jsonify
 from sqlalchemy import or_, select
 from app import db, current_user
 from app.models import (
@@ -32,6 +33,7 @@ def allowed_file(filename):
 def index():
     materials = []
     trainers = []
+    courses = []
     material_filter = request.args.get("type", "all")
     search_query = request.args.get("q", "").strip()
     if material_filter not in {"notes", "videos", "all", "following"}:
@@ -57,11 +59,21 @@ def index():
             search_pattern = f"%{search_query}%"
             trainers = User.query.filter(
                 User.role == "trainer",
+                User.is_active.is_(True),
                 or_(
                     User.name.ilike(search_pattern),
                     User.user_code.ilike(search_pattern)
                 )
             ).order_by(User.name.asc()).all()
+            courses = Course.query.join(
+                User, Course.trainer_id == User.id
+            ).filter(or_(
+                Course.title.ilike(search_pattern),
+                Course.description.ilike(search_pattern),
+                Course.tags.ilike(search_pattern),
+                User.name.ilike(search_pattern),
+                User.user_code.ilike(search_pattern)
+            )).filter(User.is_active.is_(True)).order_by(Course.created_at.desc()).all()
             query = query.join(User, CourseMaterial.trainer_id == User.id).filter(or_(
                 CourseMaterial.title.ilike(search_pattern),
                 CourseMaterial.description.ilike(search_pattern),
@@ -130,12 +142,23 @@ def index():
             reverse=True
         )
 
+    liked_ids = set()
+    if current_user.is_authenticated:
+        liked_ids = {
+            act.material_id for act in UserActivity.query.filter_by(
+                user_id=current_user.id,
+                activity_type="like"
+            ).filter(UserActivity.material_id.isnot(None)).all()
+        }
+
     return render_template(
         "index.html",
         materials=materials,
         trainers=trainers,
+        courses=courses,
         material_filter=material_filter,
-        search_query=search_query
+        search_query=search_query,
+        liked_ids=liked_ids
     )
 
 
@@ -168,7 +191,11 @@ def dashboard():
     liked_notes = [activity.material for activity in liked_materials if activity.material.material_type != "video"]
     liked_videos = [activity.material for activity in liked_materials if activity.material.material_type == "video"]
 
+    trainer_courses = []
     if current_user.role == "trainer":
+        trainer_courses = Course.query.filter_by(
+            trainer_id=current_user.id
+        ).order_by(Course.created_at.desc()).all()
         upcoming_classes = ClassSchedule.query.filter_by(
             trainer_id=current_user.id
         ).order_by(ClassSchedule.scheduled_for.asc()).limit(5).all()
@@ -192,7 +219,17 @@ def dashboard():
         "trainers": User.query.filter_by(role="trainer").count(),
         "trainees": User.query.filter_by(role="trainee").count(),
         "users": User.query.count(),
+        "courses": len(trainer_courses) if current_user.role == "trainer" else Course.query.count(),
     }
+    enrolled_courses = []
+    if current_user.role == "trainee":
+        enrolled_courses = (
+            Course.query.join(CourseEnrollment, Course.id == CourseEnrollment.course_id)
+            .filter(CourseEnrollment.trainee_id == current_user.id)
+            .order_by(CourseEnrollment.created_at.desc())
+            .all()
+        )
+
     explore_courses = Course.query.order_by(Course.created_at.desc()).limit(6).all()
 
     return render_template(
@@ -204,7 +241,9 @@ def dashboard():
         liked_videos=liked_videos,
         upcoming_classes=upcoming_classes,
         notifications=notifications,
-        explore_courses=explore_courses
+        explore_courses=explore_courses,
+        enrolled_courses=enrolled_courses,
+        trainer_courses=trainer_courses
     )
 
 
@@ -271,7 +310,7 @@ def enroll_in_course(course_id):
         db.session.commit()
         flash(f"You are enrolled in {course.title}.", "success")
 
-    return redirect(url_for("main.explore_courses"))
+    return redirect(url_for("main.course_detail", course_id=course.id))
 
 
 @bp.route("/settings")
@@ -384,23 +423,42 @@ def profile():
 
 @bp.route("/material/<int:material_id>/like", methods=["POST"])
 def toggle_material_like(material_id):
+    if not current_user.is_authenticated:
+        if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.is_json:
+            return jsonify({"error": "Unauthorized"}), 401
+        flash("Please log in to like resources.", "warning")
+        return redirect(url_for("auth.login"))
+
     material = CourseMaterial.query.get_or_404(material_id)
     like = UserActivity.query.filter_by(
         user_id=current_user.id,
         material_id=material.id,
         activity_type="like"
     ).first()
+
     if like:
         db.session.delete(like)
-        flash("Like removed.", "success")
+        is_liked = False
+        message = "Like removed."
     else:
         db.session.add(UserActivity(
             user_id=current_user.id,
             material_id=material.id,
             activity_type="like"
         ))
-        flash("Added to your liked learning.", "success")
+        is_liked = True
+        message = "Added to your liked learning."
     db.session.commit()
+
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.is_json:
+        return jsonify({
+            "success": True,
+            "liked": is_liked,
+            "material_id": material.id,
+            "message": message
+        })
+
+    flash(message, "success")
     return redirect(request.referrer or url_for("main.index"))
 
 
@@ -522,7 +580,11 @@ def approve_trainer(user_id):
 
 @bp.route("/admin/approve-admin/<int:user_id>", methods=["POST"])
 def approve_admin(user_id):
-    if not current_user.is_authenticated or not current_user.is_super_admin:
+    if (
+        not current_user.is_authenticated
+        or current_user.role != "admin"
+        or not current_user.is_super_admin
+    ):
         flash("Only a super admin can approve admin accounts.", "danger")
         return redirect(url_for("auth.login"))
 
@@ -729,3 +791,243 @@ def delete_course_post(post_id):
     db.session.commit()
     flash("Course post deleted successfully.", "success")
     return redirect(url_for("main.course_feed", course_id=course_id))
+
+
+@bp.route("/course/<int:course_id>")
+def course_detail(course_id):
+    if not current_user.is_authenticated:
+        flash("Please log in to access this course.", "warning")
+        return redirect(url_for("auth.login"))
+
+    course = Course.query.get_or_404(course_id)
+    materials = CourseMaterial.query.filter_by(course_id=course.id).order_by(CourseMaterial.id.asc()).all()
+    feed_posts = CoursePost.query.filter_by(course_id=course.id).order_by(CoursePost.created_at.desc()).all()
+
+    is_enrolled = False
+    progress_map = {}
+    progress_percentage = 0
+    enrollment = None
+
+    if current_user.role == "trainee":
+        enrollment = CourseEnrollment.query.filter_by(
+            course_id=course.id,
+            trainee_id=current_user.id
+        ).first()
+        if enrollment:
+            is_enrolled = True
+            progress_entries = CourseProgress.query.filter_by(enrollment_id=enrollment.id).all()
+            progress_map = {entry.material_id: entry.completed for entry in progress_entries}
+            progress_percentage = enrollment.progress_percentage()
+    else:
+        is_enrolled = True
+
+    item_id = request.args.get("item", type=int)
+    active_material = None
+    if item_id:
+        active_material = next((m for m in materials if m.id == item_id), None)
+    if not active_material and materials:
+        active_material = materials[0]
+
+    if current_user.role == "trainee" and active_material and active_material.material_type == "video":
+        recent_act = UserActivity.query.filter(
+            UserActivity.user_id == current_user.id,
+            UserActivity.material_id == active_material.id,
+            UserActivity.activity_type == "watch",
+            UserActivity.created_at >= datetime.utcnow() - timedelta(minutes=5)
+        ).first()
+        if not recent_act:
+            db.session.add(UserActivity(
+                user_id=current_user.id,
+                material_id=active_material.id,
+                activity_type="watch"
+            ))
+            db.session.commit()
+
+    completed_count = sum(1 for m in materials if progress_map.get(m.id))
+
+    liked_ids = set()
+    if current_user.is_authenticated:
+        liked_ids = {
+            act.material_id for act in UserActivity.query.filter_by(
+                user_id=current_user.id,
+                activity_type="like"
+            ).filter(UserActivity.material_id.isnot(None)).all()
+        }
+
+    quizzes = CourseQuiz.query.filter_by(course_id=course.id).order_by(CourseQuiz.created_at.desc()).all()
+    user_attempts = {}
+    if current_user.is_authenticated and current_user.role == "trainee":
+        quiz_ids = [q.id for q in quizzes]
+        if quiz_ids:
+            attempts = QuizAttempt.query.filter(
+                QuizAttempt.trainee_id == current_user.id,
+                QuizAttempt.quiz_id.in_(quiz_ids)
+            ).order_by(QuizAttempt.submitted_at.desc()).all()
+            for att in attempts:
+                if att.quiz_id not in user_attempts or att.score > user_attempts[att.quiz_id].score:
+                    user_attempts[att.quiz_id] = att
+
+    prev_material = None
+    next_material = None
+    if active_material and active_material in materials:
+        curr_idx = materials.index(active_material)
+        if curr_idx > 0:
+            prev_material = materials[curr_idx - 1]
+        if curr_idx < len(materials) - 1:
+            next_material = materials[curr_idx + 1]
+
+    return render_template(
+        "course_detail.html",
+        course=course,
+        materials=materials,
+        active_material=active_material,
+        prev_material=prev_material,
+        next_material=next_material,
+        feed_posts=feed_posts,
+        quizzes=quizzes,
+        user_attempts=user_attempts,
+        is_enrolled=is_enrolled,
+        enrollment=enrollment,
+        progress_map=progress_map,
+        progress_percentage=progress_percentage,
+        completed_count=completed_count,
+        liked_ids=liked_ids
+    )
+
+
+@bp.route("/course/<int:course_id>/quiz/<int:quiz_id>", methods=["GET", "POST"])
+def take_quiz(course_id, quiz_id):
+    if not current_user.is_authenticated:
+        flash("Please log in to access course quizzes.", "warning")
+        return redirect(url_for("auth.login"))
+
+    course = Course.query.get_or_404(course_id)
+    quiz = CourseQuiz.query.filter_by(id=quiz_id, course_id=course.id).first_or_404()
+    questions = CourseQuizQuestion.query.filter_by(quiz_id=quiz.id).order_by(CourseQuizQuestion.id.asc()).all()
+
+    if request.method == "POST":
+        if current_user.role != "trainee":
+            flash("Only trainees can submit quiz attempts.", "warning")
+            return redirect(url_for("main.take_quiz", course_id=course.id, quiz_id=quiz.id))
+
+        if not questions:
+            flash("This quiz does not have any questions yet.", "warning")
+            return redirect(url_for("main.course_detail", course_id=course.id))
+
+        score = 0
+        answers_map = {}
+        for q in questions:
+            selected = request.form.get(f"question_{q.id}", "").strip().upper()
+            is_correct = (selected == q.correct_option.upper())
+            if is_correct:
+                score += 1
+            answers_map[str(q.id)] = {
+                "selected": selected,
+                "correct": q.correct_option.upper(),
+                "is_correct": is_correct
+            }
+
+        attempt = QuizAttempt(
+            quiz_id=quiz.id,
+            trainee_id=current_user.id,
+            score=score,
+            total_questions=len(questions),
+            submitted_answers=json.dumps(answers_map)
+        )
+        db.session.add(attempt)
+        db.session.commit()
+
+        percentage = round((score / len(questions)) * 100) if questions else 0
+        flash(f"Quiz submitted! You scored {score} out of {len(questions)} ({percentage}%).", "success")
+
+        return render_template(
+            "take_quiz.html",
+            course=course,
+            quiz=quiz,
+            questions=questions,
+            attempt=attempt,
+            answers_map=answers_map,
+            result_mode=True,
+            percentage=percentage
+        )
+
+    # GET request
+    latest_attempt = None
+    answers_map = {}
+    percentage = 0
+    if current_user.role == "trainee":
+        latest_attempt = QuizAttempt.query.filter_by(
+            quiz_id=quiz.id,
+            trainee_id=current_user.id
+        ).order_by(QuizAttempt.submitted_at.desc()).first()
+        if latest_attempt and latest_attempt.submitted_answers:
+            try:
+                answers_map = json.loads(latest_attempt.submitted_answers)
+                percentage = round((latest_attempt.score / latest_attempt.total_questions) * 100) if latest_attempt.total_questions else 0
+            except Exception:
+                answers_map = {}
+
+    review = request.args.get("review") == "true" and latest_attempt is not None
+
+    return render_template(
+        "take_quiz.html",
+        course=course,
+        quiz=quiz,
+        questions=questions,
+        attempt=latest_attempt,
+        answers_map=answers_map,
+        result_mode=review,
+        percentage=percentage
+    )
+
+
+@bp.route("/course/<int:course_id>/material/<int:material_id>/progress", methods=["POST"])
+def toggle_course_progress(course_id, material_id):
+    if not current_user.is_authenticated:
+        return jsonify({"error": "Unauthorized"}), 401
+    if current_user.role != "trainee":
+        return jsonify({"error": "Only trainees can update progress"}), 403
+
+    enrollment = CourseEnrollment.query.filter_by(
+        course_id=course_id,
+        trainee_id=current_user.id
+    ).first_or_404()
+
+    material = CourseMaterial.query.filter_by(
+        id=material_id,
+        course_id=course_id
+    ).first_or_404()
+
+    progress = CourseProgress.query.filter_by(
+        enrollment_id=enrollment.id,
+        material_id=material.id
+    ).first()
+
+    if not progress:
+        progress = CourseProgress(
+            enrollment_id=enrollment.id,
+            material_id=material.id,
+            completed=True,
+            completed_at=datetime.utcnow()
+        )
+        db.session.add(progress)
+    else:
+        progress.completed = not progress.completed
+        progress.completed_at = datetime.utcnow() if progress.completed else None
+
+    db.session.commit()
+
+    total_materials = CourseMaterial.query.filter_by(course_id=course_id).count()
+    completed_count = CourseProgress.query.filter_by(enrollment_id=enrollment.id, completed=True).count()
+    percentage = round((completed_count / total_materials * 100)) if total_materials > 0 else 0
+
+    if request.headers.get("X-Requested-With") == "XMLHttpRequest" or request.is_json:
+        return jsonify({
+            "success": True,
+            "completed": progress.completed,
+            "completed_count": completed_count,
+            "total_materials": total_materials,
+            "progress_percentage": percentage
+        })
+
+    return redirect(url_for("main.course_detail", course_id=course_id, item=material.id))

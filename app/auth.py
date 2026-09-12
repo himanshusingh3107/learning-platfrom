@@ -23,7 +23,7 @@ def signup():
         certificate = request.files.get("certificate")
 
         # Validate role
-        if role not in ["trainee", "trainer", "admin"]:
+        if role not in ["trainee", "trainer"]:
             flash("Invalid role.", "danger")
             return redirect(url_for("auth.signup"))
 
@@ -67,7 +67,7 @@ def signup():
             name=name,
             email=email,
             role=role,
-            # Trainers and admins require a privileged approval before login.
+            # Trainers require approval before login.
             is_active=role == "trainee",
         )
 

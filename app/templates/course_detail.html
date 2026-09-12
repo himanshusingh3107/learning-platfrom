@@ -1,0 +1,714 @@
+{% extends "base.html" %}
+
+{% block content %}
+<main class="app-main course-detail-page">
+    <!-- Top breadcrumb & navigation -->
+    <div class="course-back-nav">
+        <a class="btn" style="background: transparent; color: var(--ink); border: 1px solid var(--line); display: inline-flex; align-items: center; gap: 8px;" href="{{ url_for('main.dashboard') }}">
+            ← Back to Dashboard
+        </a>
+    </div>
+
+    <!-- Course Header Banner -->
+    <section class="course-detail-header content-panel">
+        <div class="course-header-top">
+            <div class="course-title-group">
+                <span class="explore-course-label">Course Playlist</span>
+                <h1>{{ course.title }}</h1>
+                <p class="course-subtitle">{{ course.description or "Comprehensive learning path created by your trainer." }}</p>
+                <div class="course-meta-row">
+                    <span class="course-author">By <a href="{{ url_for('main.trainer_profile', trainer_id=course.trainer.id) }}"><strong>{{ course.trainer.name }}</strong></a></span>
+                    {% if course.tags %}
+                        <span class="course-meta-divider">·</span>
+                        <span class="course-tags">🏷️ {{ course.tags }}</span>
+                    {% endif %}
+                    <span class="course-meta-divider">·</span>
+                    <span class="course-total-items">📚 {{ materials|length }} lesson{{ 's' if materials|length != 1 else '' }}</span>
+                </div>
+            </div>
+
+            <div class="course-header-actions">
+                {% if current_user.role == "trainee" %}
+                    {% if is_enrolled %}
+                        <div class="course-progress-box">
+                            <div class="progress-label-row">
+                                <span class="progress-title">Your Progress</span>
+                                <strong id="progressPercentageText">{{ progress_percentage }}%</strong>
+                            </div>
+                            <div class="progress-track">
+                                <div id="progressBarFill" class="progress-fill" style="width: {{ progress_percentage }}%;"></div>
+                            </div>
+                            <small id="completedCountText" class="progress-counter">{{ completed_count }} of {{ materials|length }} completed</small>
+                        </div>
+                    {% else %}
+                        <form method="POST" action="{{ url_for('main.enroll_in_course', course_id=course.id) }}">
+                            <button type="submit" class="btn" style="padding: 12px 24px; font-size: 15px;">Enroll in Course</button>
+                        </form>
+                    {% endif %}
+                {% elif current_user.id == course.trainer_id %}
+                    <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <a class="btn" href="{{ url_for('trainer.edit_course', course_id=course.id) }}">✏️ Manage Course</a>
+                        <a class="btn" style="background: transparent; color: var(--ink); border: 1px solid var(--line);" href="{{ url_for('main.upload_photo', course_id=course.id) }}">＋ Feed Post</a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+
+        <!-- Course Navigation Tabs -->
+        <nav class="course-nav-tabs" aria-label="Course Sections">
+            <button class="course-tab-btn active" data-tab="playlist" onclick="switchCourseTab('playlist')">
+                🎬 Lectures & Playlist <span class="tab-badge">{{ materials|length }}</span>
+            </button>
+            <button class="course-tab-btn" data-tab="notes" onclick="switchCourseTab('notes')">
+                📄 Course Notes <span class="tab-badge">{{ materials|selectattr('material_type', 'equalto', 'note')|list|length }}</span>
+            </button>
+            <button class="course-tab-btn" data-tab="quizzes" onclick="switchCourseTab('quizzes')">
+                ❓ Quizzes <span class="tab-badge">{{ quizzes|length }}</span>
+            </button>
+            <button class="course-tab-btn" data-tab="feed" onclick="switchCourseTab('feed')">
+                📸 Educational Feed <span class="tab-badge">{{ feed_posts|length }}</span>
+            </button>
+            <button class="course-tab-btn" data-tab="overview" onclick="switchCourseTab('overview')">
+                ℹ️ Course Info
+            </button>
+        </nav>
+    </section>
+
+    <!-- Tab 1: Lectures & Playlist Layout (YouTube / Udemy style) -->
+    <div id="tab-playlist" class="course-tab-pane active">
+        {% if materials %}
+        <div class="playlist-container">
+            <!-- Main Stage Player (Left Column) -->
+            <div class="playlist-stage">
+                <div class="player-wrapper">
+                    {% if active_material.material_type == "video" %}
+                        <div class="video-container" id="videoPlayerBox">
+                            <video id="courseVideoPlayer" controls preload="metadata" data-material-id="{{ active_material.id }}" data-watch-url="{{ url_for('trainer.record_video_watch', material_id=active_material.id) }}">
+                                <source id="videoSource" src="{{ url_for('trainer.download_material', material_id=active_material.id) }}" type="video/{{ active_material.file_type }}">
+                                Your browser does not support video playback.
+                            </video>
+                        </div>
+                        <div id="documentViewerBox" class="document-preview-box" style="display: none;"></div>
+                    {% else %}
+                        <div class="video-container" id="videoPlayerBox" style="display: none;">
+                            <video id="courseVideoPlayer" controls preload="metadata">
+                                <source id="videoSource" src="" type="video/mp4">
+                            </video>
+                        </div>
+                        <div id="documentViewerBox" class="document-preview-box">
+                            <div class="document-card">
+                                <div class="document-icon">▤</div>
+                                <h3 id="docTitle">{{ active_material.title }}</h3>
+                                <p id="docFilename" class="muted">File: {{ active_material.original_filename }} ({{ active_material.file_type|upper }})</p>
+                                <p class="muted" style="font-size: 13px; max-width: 500px; margin: 10px auto 0;">
+                                    Study note uploaded by your trainer. Read the overview or click below whenever you want to download this file.
+                                </p>
+                                <div class="doc-actions" style="margin-top: 20px;">
+                                    <a id="docDownloadBtn" class="btn" href="{{ url_for('trainer.download_material', material_id=active_material.id) }}" download>
+                                        ⬇️ Download Note
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+
+                <!-- Lecture Info & Navigation Controls -->
+                <div class="lecture-details-card content-panel">
+                    <div class="lecture-header-row">
+                        <div>
+                            <span id="lectureTypeBadge" class="lecture-type-badge {{ 'badge-video' if active_material.material_type == 'video' else 'badge-note' }}">
+                                {{ "▶ Video Lecture" if active_material.material_type == "video" else "▤ Course Note" }}
+                            </span>
+                            <h2 id="currentLectureTitle">{{ active_material.title }}</h2>
+                            <p id="currentLectureDesc" class="lecture-description">{{ active_material.description or "No lesson description provided." }}</p>
+                        </div>
+
+                        {% if current_user.role == "trainee" and is_enrolled %}
+                        <div class="lecture-completion-action">
+                            <button id="toggleCompleteBtn" 
+                                    class="completion-btn {{ 'completed' if progress_map.get(active_material.id) else '' }}" 
+                                    onclick="toggleMaterialCompletion({{ course.id }}, activeMaterialId)">
+                                <span class="check-icon">✓</span>
+                                <span id="completionBtnText">{{ "Completed" if progress_map.get(active_material.id) else "Mark as Completed" }}</span>
+                            </button>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <!-- Previous / Next Controls & Like -->
+                    <div class="lecture-nav-controls">
+                        <button id="prevLectureBtn" class="btn btn-outline" {{ 'disabled' if not prev_material else '' }} onclick="goToLecture({{ prev_material.id if prev_material else 'null' }})">
+                            ← Previous Lesson
+                        </button>
+                        {% if current_user.is_authenticated and current_user.role == "trainee" %}
+                        <button id="likeMaterialBtn" class="like-btn {{ 'liked' if active_material and active_material.id in liked_ids else '' }}" onclick="toggleActiveMaterialLike()" title="{{ 'Liked' if active_material and active_material.id in liked_ids else 'Like' }}">
+                            <span class="like-heart" id="activeLikeHeart">{{ '♥' if active_material and active_material.id in liked_ids else '♡' }}</span>
+                            <span class="like-label" id="activeLikeLabel">{{ 'Liked' if active_material and active_material.id in liked_ids else 'Like' }}</span>
+                        </button>
+                        {% endif %}
+                        <a id="downloadLessonBtn" class="btn btn-outline" href="{{ url_for('trainer.download_material', material_id=active_material.id) }}" download>
+                            ⬇️ Download File
+                        </a>
+                        <button id="nextLectureBtn" class="btn" {{ 'disabled' if not next_material else '' }} onclick="goToLecture({{ next_material.id if next_material else 'null' }})">
+                            Next Lesson →
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Playlist Sidebar (Right Column) -->
+            <aside class="playlist-sidebar content-panel">
+                <div class="playlist-sidebar-header">
+                    <div>
+                        <h3>Course Content</h3>
+                        <p class="muted" style="font-size: 12px; margin: 2px 0 0;">{{ materials|length }} lessons & materials</p>
+                    </div>
+                    <div class="playlist-filter">
+                        <input type="text" id="playlistSearch" placeholder="Filter lessons..." oninput="filterPlaylist(this.value)">
+                    </div>
+                </div>
+
+                <div class="playlist-items-list" id="playlistItemsList">
+                    {% for item in materials %}
+                    <div class="playlist-item {{ 'active' if item.id == active_material.id else '' }}" 
+                         id="playlist-item-{{ item.id }}"
+                         data-id="{{ item.id }}"
+                         data-title="{{ item.title }}"
+                         data-desc="{{ item.description or '' }}"
+                         data-type="{{ item.material_type }}"
+                         data-filetype="{{ item.file_type }}"
+                         data-filename="{{ item.original_filename }}"
+                         data-url="{{ url_for('trainer.download_material', material_id=item.id) }}"
+                         data-watch-url="{{ url_for('trainer.record_video_watch', material_id=item.id) if item.material_type == 'video' else '' }}"
+                         onclick="selectLecture({{ item.id }})">
+                        <span class="playlist-index">{{ loop.index }}</span>
+                        <div class="playlist-item-icon {{ 'video-icon' if item.material_type == 'video' else 'note-icon' }}">
+                            {{ "▶" if item.material_type == "video" else "▤" }}
+                        </div>
+                        <div class="playlist-item-body">
+                            <h4>{{ item.title }}</h4>
+                            <div class="playlist-item-meta">
+                                <span>{{ item.material_type|capitalize }}</span>
+                                <span>·</span>
+                                <span>{{ item.file_type|upper }}</span>
+                            </div>
+                        </div>
+                        <div class="playlist-item-status">
+                            <span class="status-check {{ 'is-completed' if progress_map.get(item.id) else '' }}" id="status-check-{{ item.id }}" title="{{ 'Completed' if progress_map.get(item.id) else 'Incomplete' }}">
+                                ✓
+                            </span>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </aside>
+        </div>
+        {% else %}
+        <div class="content-panel empty-course-panel">
+            <div style="font-size: 3rem; margin-bottom: 12px;">📂</div>
+            <h2>No Lessons Available Yet</h2>
+            <p class="muted">The trainer hasn't uploaded any video lectures or notes to this course yet. Check back soon!</p>
+            {% if current_user.id == course.trainer_id %}
+            <a class="btn" style="margin-top: 16px;" href="{{ url_for('trainer.edit_course', course_id=course.id) }}#add-content">
+                ＋ Add Lectures and Notes
+            </a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Tab 2: Course Notes & Resources -->
+    <div id="tab-notes" class="course-tab-pane">
+        <div class="content-panel">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">Study Materials</p>
+                    <h2>Course Notes & Cheat Sheets</h2>
+                </div>
+                <span class="section-count">{{ materials|selectattr('material_type', 'equalto', 'note')|list|length }} Notes</span>
+            </div>
+
+            {% set course_notes = materials|selectattr('material_type', 'equalto', 'note')|list %}
+            {% if course_notes %}
+            <div class="liked-material-grid">
+                {% for note in course_notes %}
+                <div class="liked-material-card static-card">
+                    <div class="liked-material-thumb note-visual">
+                        {% if note.thumbnail_filename %}
+                            <img src="{{ url_for('trainer.material_thumbnail', filename=note.thumbnail_filename) }}" alt="{{ note.title }}">
+                        {% else %}
+                            <span>▤</span>
+                        {% endif %}
+                    </div>
+                    <div style="flex: 1;">
+                        <strong>{{ note.title }}</strong>
+                        <small class="muted" style="display: block; margin-top: 2px;">{{ note.original_filename }} ({{ note.file_type|upper }})</small>
+                        {% if note.description %}
+                        <p style="font-size: 12px; color: var(--muted); margin: 6px 0 0;">{{ note.description }}</p>
+                        {% endif %}
+                    </div>
+                    <div style="display: flex; gap: 6px; margin-top: 10px; align-items: center; flex-wrap: wrap;">
+                        <button class="btn btn-outline" style="padding: 6px 10px; font-size: 12px;" onclick="switchCourseTab('playlist'); selectLecture({{ note.id }});">
+                            View in Player
+                        </button>
+                        {% if current_user.is_authenticated and current_user.role == "trainee" %}
+                        <button class="like-btn {{ 'liked' if note.id in liked_ids else '' }}" id="note-like-btn-{{ note.id }}" style="padding: 5px 10px; font-size: 12px;" onclick="toggleNoteLike({{ note.id }})">
+                            <span class="like-heart">{{ '♥' if note.id in liked_ids else '♡' }}</span>
+                            <span class="like-label">{{ 'Liked' if note.id in liked_ids else 'Like' }}</span>
+                        </button>
+                        {% endif %}
+                        <a class="btn" style="padding: 6px 10px; font-size: 12px;" href="{{ url_for('trainer.download_material', material_id=note.id) }}">
+                            Download
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="muted">No reading notes uploaded for this course yet.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Tab 3: Educational Feed -->
+    <div id="tab-feed" class="course-tab-pane">
+        <div class="content-panel">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">Course Updates</p>
+                    <h2>Educational Feed</h2>
+                </div>
+                {% if current_user.id == course.trainer_id %}
+                <a class="btn" href="{{ url_for('main.upload_photo', course_id=course.id) }}">＋ Post Update</a>
+                {% endif %}
+            </div>
+
+            {% if feed_posts %}
+            <div class="course-feed-grid">
+                {% for post in feed_posts %}
+                <div class="post-card" style="margin-bottom: 20px;">
+                    <h3>{{ post.title }}</h3>
+                    <div class="post-meta">Published on {{ post.created_at.strftime('%b %d, %Y') }}</div>
+                    {% if post.tags %}
+                        <div class="post-tags" style="margin: 8px 0;">
+                            {% for tag in post.tags.split(',') %}
+                                <span class="material-tag">#{{ tag.strip() }}</span>
+                            {% endfor %}
+                        </div>
+                    {% endif %}
+                    {% if post.description %}
+                        <p>{{ post.description }}</p>
+                    {% endif %}
+                    <img src="{{ url_for('static', filename='uploads/' + post.image_filename) }}" alt="{{ post.title }}" style="border-radius: 12px; margin-top: 12px;">
+                    {% if current_user.id == post.trainer_id %}
+                        <form method="POST" action="{{ url_for('main.delete_course_post', post_id=post.id) }}" onsubmit="return confirm('Delete this course post?');" style="margin-top: 12px;">
+                            <button class="danger-button" type="submit">Delete Post</button>
+                        </form>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="muted">No educational updates posted for this course yet.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Tab 3: Course Quizzes & Assessments -->
+    <div id="tab-quizzes" class="course-tab-pane">
+        <div class="content-panel">
+            <div class="section-heading" style="margin-bottom: 24px;">
+                <div>
+                    <p class="eyebrow">Interactive Knowledge Checks</p>
+                    <h2>Course Quizzes & Assessments</h2>
+                    <p class="muted">Test your understanding of {{ course.title }} topics with multiple choice quizzes organized by your trainer.</p>
+                </div>
+                {% if current_user.id == course.trainer_id %}
+                <div>
+                    <a class="btn" href="{{ url_for('trainer.edit_course', course_id=course.id) }}#quizzes">⚙️ Manage Quizzes</a>
+                </div>
+                {% endif %}
+            </div>
+
+            {% if quizzes %}
+            <div class="quizzes-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px;">
+                {% for quiz in quizzes %}
+                {% set attempt = user_attempts.get(quiz.id) if user_attempts else None %}
+                <div class="quiz-card card" style="display: flex; flex-direction: column; justify-content: space-between; border-radius: 14px; padding: 22px; border: 1px solid var(--line); background: var(--bg-card, var(--card, #fff));">
+                    <div>
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; gap: 8px;">
+                            <span class="quiz-badge" style="background: rgba(37, 99, 235, 0.12); color: #2563eb; font-weight: 700; font-size: 11px; padding: 4px 10px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.5px;">
+                                ❓ Quiz
+                            </span>
+                            <span class="muted" style="font-size: 12px;">
+                                {{ quiz.questions|length }} {{ 'Question' if quiz.questions|length == 1 else 'Questions' }}
+                            </span>
+                        </div>
+                        <h3 style="margin: 0 0 8px; font-size: 18px; line-height: 1.3;">{{ quiz.title }}</h3>
+                        <p class="muted" style="font-size: 13.5px; line-height: 1.5; margin-bottom: 16px;">
+                            {{ quiz.description or "Test your retention and core knowledge with this quiz." }}
+                        </p>
+                    </div>
+
+                    <div style="border-top: 1px solid var(--line); padding-top: 16px; margin-top: 12px;">
+                        {% if current_user.role == 'trainee' %}
+                            {% if attempt %}
+                                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; background: rgba(34, 197, 94, 0.08); padding: 8px 12px; border-radius: 8px; border: 1px solid rgba(34, 197, 94, 0.25);">
+                                    <span style="font-size: 13px; font-weight: 600; color: #16a34a;">Best Score:</span>
+                                    <span style="font-size: 13px; font-weight: 700; color: #16a34a;">
+                                        {{ attempt.score }} / {{ attempt.total_questions }} ({{ ((attempt.score / attempt.total_questions) * 100)|round|int if attempt.total_questions else 0 }}%)
+                                    </span>
+                                </div>
+                                <div style="display: flex; gap: 8px;">
+                                    <a class="btn" style="flex: 1; text-align: center; font-size: 13px; padding: 9px 12px;" href="{{ url_for('main.take_quiz', course_id=course.id, quiz_id=quiz.id) }}">
+                                        🔄 Retake Quiz
+                                    </a>
+                                    <a class="btn btn-outline" style="text-align: center; font-size: 13px; padding: 9px 12px;" href="{{ url_for('main.take_quiz', course_id=course.id, quiz_id=quiz.id, review='true') }}">
+                                        👁️ Review
+                                    </a>
+                                </div>
+                            {% else %}
+                                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px;">
+                                    <span class="muted" style="font-size: 13px;">Status:</span>
+                                    <span style="font-size: 12px; font-weight: 600; color: #f59e0b; background: rgba(245, 158, 11, 0.1); padding: 3px 8px; border-radius: 6px;">Not Attempted</span>
+                                </div>
+                                <a class="btn" style="width: 100%; text-align: center; font-size: 14px; padding: 10px 14px;" href="{{ url_for('main.take_quiz', course_id=course.id, quiz_id=quiz.id) }}">
+                                    🚀 Start Quiz →
+                                </a>
+                            {% endif %}
+                        {% elif current_user.id == course.trainer_id %}
+                            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                                <span class="muted" style="font-size: 13px;">Submissions:</span>
+                                <span style="font-weight: 700; font-size: 13px;">{{ quiz.attempts|length }}</span>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <a class="btn" style="flex: 1; text-align: center; font-size: 13px; padding: 9px 12px;" href="{{ url_for('trainer.manage_quiz', quiz_id=quiz.id) }}">
+                                    ✏️ Edit / View Scores
+                                </a>
+                                <a class="btn btn-outline" style="text-align: center; font-size: 13px; padding: 9px 12px;" href="{{ url_for('main.take_quiz', course_id=course.id, quiz_id=quiz.id) }}">
+                                    Preview
+                                </a>
+                            </div>
+                        {% else %}
+                            <a class="btn btn-outline" style="width: 100%; text-align: center; font-size: 13px; padding: 9px 12px;" href="{{ url_for('main.take_quiz', course_id=course.id, quiz_id=quiz.id) }}">
+                                Preview Quiz
+                            </a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div style="text-align: center; padding: 48px 20px; background: rgba(0,0,0,0.02); border: 1px dashed var(--line); border-radius: 16px;">
+                <div style="font-size: 42px; margin-bottom: 12px;">❓</div>
+                <h3 style="margin-bottom: 8px;">No Quizzes Available Yet</h3>
+                <p class="muted" style="max-width: 460px; margin: 0 auto 18px;">The trainer hasn't published any quizzes for this course yet. Check back soon!</p>
+                {% if current_user.id == course.trainer_id %}
+                <a class="btn" href="{{ url_for('trainer.edit_course', course_id=course.id) }}#create-quiz">
+                    ＋ Create Your First Course Quiz
+                </a>
+                {% endif %}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Tab 4: Course Overview & Trainer -->
+    <div id="tab-overview" class="course-tab-pane">
+        <div class="content-panel">
+            <div class="section-heading">
+                <div>
+                    <p class="eyebrow">Course Overview</p>
+                    <h2>About this course</h2>
+                </div>
+            </div>
+            <p style="font-size: 15px; line-height: 1.7; margin-bottom: 24px;">{{ course.description or "No detailed overview provided for this course." }}</p>
+
+            <div class="trainer-card" style="max-width: 450px;">
+                <div class="trainer-avatar">
+                    {% if course.trainer.profile_photo %}
+                        <img src="{{ url_for('main.profile_photo', filename=course.trainer.profile_photo) }}" alt="{{ course.trainer.name }}">
+                    {% else %}
+                        <span>👤</span>
+                    {% endif %}
+                </div>
+                <div>
+                    <h3>{{ course.trainer.name }}</h3>
+                    <p>{{ course.trainer.user_code }} · Trainer</p>
+                    <a href="{{ url_for('main.trainer_profile', trainer_id=course.trainer.id) }}">View Full Profile →</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</main>
+
+<script>
+    // Playlist & Course state
+    const courseId = {{ course.id }};
+    const materialsData = [
+        {% for m in materials %}
+        {
+            id: {{ m.id }},
+            title: {{ m.title|tojson }},
+            description: {{ (m.description or '')|tojson }},
+            materialType: {{ m.material_type|tojson }},
+            fileType: {{ m.file_type|tojson }},
+            filename: {{ m.original_filename|tojson }},
+            url: {{ url_for('trainer.download_material', material_id=m.id)|tojson }},
+            watchUrl: {{ (url_for('trainer.record_video_watch', material_id=m.id) if m.material_type == 'video' else '')|tojson }},
+            completed: {{ 'true' if progress_map.get(m.id) else 'false' }},
+            liked: {{ 'true' if m.id in liked_ids else 'false' }}
+        }{{ "," if not loop.last else "" }}
+        {% endfor %}
+    ];
+
+    let activeMaterialId = {{ active_material.id if active_material else 'null' }};
+
+    function switchCourseTab(tabName) {
+        document.querySelectorAll('.course-tab-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.getAttribute('data-tab') === tabName);
+        });
+        document.querySelectorAll('.course-tab-pane').forEach(pane => {
+            pane.classList.toggle('active', pane.id === 'tab-' + tabName);
+        });
+    }
+
+    function selectLecture(id) {
+        const item = materialsData.find(m => m.id === id);
+        if (!item) return;
+
+        activeMaterialId = id;
+
+        // Update active class in playlist list
+        document.querySelectorAll('.playlist-item').forEach(el => {
+            el.classList.toggle('active', parseInt(el.getAttribute('data-id'), 10) === id);
+        });
+
+        // Update Lecture details
+        document.getElementById('currentLectureTitle').textContent = item.title;
+        document.getElementById('currentLectureDesc').textContent = item.description || "No lesson description provided.";
+        
+        const typeBadge = document.getElementById('lectureTypeBadge');
+        if (item.materialType === 'video') {
+            typeBadge.textContent = '▶ Video Lecture (' + item.fileType.toUpperCase() + ')';
+            typeBadge.className = 'lecture-type-badge badge-video';
+        } else {
+            typeBadge.textContent = '▤ Course Note (' + item.fileType.toUpperCase() + ')';
+            typeBadge.className = 'lecture-type-badge badge-note';
+        }
+
+        // Update player stage
+        const videoBox = document.getElementById('videoPlayerBox');
+        const docBox = document.getElementById('documentViewerBox');
+        const videoPlayer = document.getElementById('courseVideoPlayer');
+        const videoSource = document.getElementById('videoSource');
+        const downloadBtn = document.getElementById('downloadLessonBtn');
+
+        if (downloadBtn) {
+            downloadBtn.href = item.url;
+        }
+
+        if (item.materialType === 'video') {
+            docBox.style.display = 'none';
+            videoBox.style.display = 'block';
+            videoSource.src = item.url;
+            videoSource.type = 'video/' + item.fileType;
+            videoPlayer.load();
+            if (item.watchUrl) {
+                videoPlayer.setAttribute('data-watch-url', item.watchUrl);
+            }
+        } else {
+            videoPlayer.pause();
+            videoBox.style.display = 'none';
+            docBox.style.display = 'block';
+            
+            let docHtml = `
+                <div class="document-card">
+                    <div class="document-icon">▤</div>
+                    <h3>${escapeHtml(item.title)}</h3>
+                    <p class="muted">File: ${escapeHtml(item.filename)} (${item.fileType.toUpperCase()})</p>
+                    <p class="muted" style="font-size: 13px; max-width: 500px; margin: 10px auto 0;">
+                        Study note uploaded by your trainer. Read the overview or click below whenever you want to download this file.
+                    </p>
+                    <div class="doc-actions" style="margin-top: 20px;">
+                        <a class="btn" href="${item.url}" download>
+                            ⬇️ Download Note
+                        </a>
+                    </div>
+                </div>
+            `;
+            docBox.innerHTML = docHtml;
+        }
+
+        // Update Previous / Next Buttons
+        const currentIndex = materialsData.findIndex(m => m.id === id);
+        const prevBtn = document.getElementById('prevLectureBtn');
+        const nextBtn = document.getElementById('nextLectureBtn');
+
+        if (prevBtn) {
+            if (currentIndex > 0) {
+                prevBtn.disabled = false;
+                prevBtn.onclick = () => goToLecture(materialsData[currentIndex - 1].id);
+            } else {
+                prevBtn.disabled = true;
+                prevBtn.onclick = null;
+            }
+        }
+
+        if (nextBtn) {
+            if (currentIndex < materialsData.length - 1) {
+                nextBtn.disabled = false;
+                nextBtn.onclick = () => goToLecture(materialsData[currentIndex + 1].id);
+            } else {
+                nextBtn.disabled = true;
+                nextBtn.onclick = null;
+            }
+        }
+
+        // Update completion button state
+        const completeBtn = document.getElementById('toggleCompleteBtn');
+        const completeText = document.getElementById('completionBtnText');
+        if (completeBtn && completeText) {
+            completeBtn.classList.toggle('completed', item.completed);
+            completeText.textContent = item.completed ? 'Completed' : 'Mark as Completed';
+        }
+
+        // Update like button state
+        const likeBtn = document.getElementById('likeMaterialBtn');
+        const activeLikeHeart = document.getElementById('activeLikeHeart');
+        const activeLikeLabel = document.getElementById('activeLikeLabel');
+        if (likeBtn) {
+            likeBtn.classList.toggle('liked', item.liked);
+            if (activeLikeHeart) activeLikeHeart.textContent = item.liked ? '♥' : '♡';
+            if (activeLikeLabel) activeLikeLabel.textContent = item.liked ? 'Liked' : 'Like';
+            likeBtn.title = item.liked ? 'Liked' : 'Like';
+        }
+
+        // Update URL query parameter without full reload
+        const newUrl = new URL(window.location);
+        newUrl.searchParams.set('item', id);
+        window.history.replaceState({}, '', newUrl);
+
+        // Scroll playlist item into view smoothly
+        const activeElem = document.getElementById('playlist-item-' + id);
+        if (activeElem) {
+            activeElem.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+    }
+
+    function goToLecture(id) {
+        if (id) {
+            selectLecture(id);
+        }
+    }
+
+    function toggleMaterialCompletion(cId, mId) {
+        if (!mId) return;
+
+        const completeBtn = document.getElementById('toggleCompleteBtn');
+        const completeText = document.getElementById('completionBtnText');
+        
+        fetch(`/course/${cId}/material/${mId}/progress`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/json'
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // Update item in local list
+                const item = materialsData.find(m => m.id === mId);
+                if (item) {
+                    item.completed = data.completed;
+                }
+
+                if (completeBtn && completeText) {
+                    completeBtn.classList.toggle('completed', data.completed);
+                    completeText.textContent = data.completed ? 'Completed' : 'Mark as Completed';
+                }
+
+                // Update checklist indicator in playlist
+                const checkEl = document.getElementById('status-check-' + mId);
+                if (checkEl) {
+                    checkEl.classList.toggle('is-completed', data.completed);
+                }
+
+                // Update progress header
+                const pctText = document.getElementById('progressPercentageText');
+                const barFill = document.getElementById('progressBarFill');
+                const countText = document.getElementById('completedCountText');
+
+                if (pctText) pctText.textContent = data.progress_percentage + '%';
+                if (barFill) barFill.style.width = data.progress_percentage + '%';
+                if (countText) countText.textContent = `${data.completed_count} of ${data.total_materials} completed`;
+            }
+        })
+        .catch(err => console.error('Error updating course progress:', err));
+    }
+
+    function toggleActiveMaterialLike() {
+        if (!activeMaterialId) return;
+        toggleNoteLike(activeMaterialId);
+    }
+
+    function toggleNoteLike(mId) {
+        if (!mId) return;
+        fetch(`/material/${mId}/like`, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                const item = materialsData.find(m => m.id === mId);
+                if (item) item.liked = data.liked;
+
+                if (mId === activeMaterialId) {
+                    const likeBtn = document.getElementById('likeMaterialBtn');
+                    const activeLikeHeart = document.getElementById('activeLikeHeart');
+                    const activeLikeLabel = document.getElementById('activeLikeLabel');
+                    if (likeBtn) {
+                        likeBtn.classList.toggle('liked', data.liked);
+                        if (activeLikeHeart) activeLikeHeart.textContent = data.liked ? '♥' : '♡';
+                        if (activeLikeLabel) activeLikeLabel.textContent = data.liked ? 'Liked' : 'Like';
+                        likeBtn.title = data.liked ? 'Liked' : 'Like';
+                    }
+                }
+
+                const noteBtn = document.getElementById('note-like-btn-' + mId);
+                if (noteBtn) {
+                    noteBtn.classList.toggle('liked', data.liked);
+                    const heart = noteBtn.querySelector('.like-heart');
+                    const label = noteBtn.querySelector('.like-label');
+                    if (heart) heart.textContent = data.liked ? '♥' : '♡';
+                    if (label) label.textContent = data.liked ? 'Liked' : 'Like';
+                    noteBtn.title = data.liked ? 'Liked' : 'Like';
+                }
+            }
+        })
+        .catch(err => console.error('Error toggling like:', err));
+    }
+
+    function filterPlaylist(keyword) {
+        const query = (keyword || '').toLowerCase().trim();
+        document.querySelectorAll('.playlist-item').forEach(item => {
+            const title = (item.getAttribute('data-title') || '').toLowerCase();
+            const desc = (item.getAttribute('data-desc') || '').toLowerCase();
+            const matches = title.includes(query) || desc.includes(query);
+            item.style.display = matches ? 'flex' : 'none';
+        });
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text || '';
+        return div.innerHTML;
+    }
+</script>
+{% endblock %}
+
