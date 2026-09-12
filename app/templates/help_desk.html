@@ -1,0 +1,156 @@
+{% extends "base.html" %}
+
+{% block content %}
+<main class="app-main helpdesk-main">
+    <!-- Breadcrumb Navigation -->
+    <nav class="course-breadcrumb" aria-label="Breadcrumb">
+        <a href="{{ url_for('main.dashboard') }}">Dashboard</a>
+        <span class="breadcrumb-separator">/</span>
+        <span class="breadcrumb-current">Trainee Help Desk</span>
+    </nav>
+
+    <!-- Help Desk Header Banner -->
+    <header class="content-panel helpdesk-header-banner">
+        <div class="helpdesk-header-content">
+            <div class="helpdesk-badge-group">
+                <span class="helpdesk-tag">🛟 Trainee Support</span>
+                <span class="helpdesk-status-pill">● Online & Ready</span>
+            </div>
+            <h1 class="helpdesk-main-title">Trainee Help Desk</h1>
+            <p class="helpdesk-main-desc">
+                Have questions regarding your courses, quizzes, notes, or platform access? Contact the platform administrator directly via email or submit an in-app ticket below.
+            </p>
+        </div>
+    </header>
+
+    <div class="helpdesk-layout-grid">
+        <!-- LEFT COLUMN: Email Quick-Launcher & Ticket Submission -->
+        <div class="helpdesk-main-col">
+            <!-- 1. Direct Email Launch Card -->
+            <section class="card helpdesk-action-card helpdesk-direct-email-card">
+                <div class="helpdesk-card-header">
+                    <div class="helpdesk-icon-bubble">✉️</div>
+                    <div>
+                        <h2 class="helpdesk-card-title">Email Platform Administrator</h2>
+                        <p class="helpdesk-card-sub">Send a direct message from your computer or phone email app.</p>
+                    </div>
+                </div>
+
+                <div class="helpdesk-admin-info-box">
+                    <div class="admin-email-meta">
+                        <span class="admin-label">PRIMARY ADMIN EMAIL:</span>
+                        <code class="admin-email-display">{{ admin_email }}</code>
+                    </div>
+                    {% set email_subject = "Trainee Help Desk Inquiry - " ~ current_user.name %}
+                    {% set email_body = "Hello Administrator,%0D%0A%0D%0AMy Name: " ~ current_user.name ~ "%0D%0AMy Email: " ~ current_user.email ~ "%0D%0AMy User Code: " ~ (current_user.user_code or 'N/A') ~ "%0D%0A%0D%0AI need assistance with the following:%0D%0A%0D%0A[Please write your message here]%0D%0A" %}
+                    <a href="mailto:{{ admin_email }}?subject={{ email_subject | urlencode }}&body={{ email_body | urlencode }}" class="btn btn-primary helpdesk-email-launch-btn">
+                        ✉️ Open in Email App
+                    </a>
+                </div>
+                <p class="helpdesk-card-hint">
+                    💡 Ideal for sending screenshots, assignments, or file attachments directly to the admin.
+                </p>
+            </section>
+
+            <!-- 2. In-Platform Support Ticket Form -->
+            <section class="card helpdesk-action-card">
+                <div class="helpdesk-card-header">
+                    <div class="helpdesk-icon-bubble">📝</div>
+                    <div>
+                        <h2 class="helpdesk-card-title">Submit Support Inquiry</h2>
+                        <p class="helpdesk-card-sub">Leave a message in the system. The administrator will be notified immediately.</p>
+                    </div>
+                </div>
+
+                <form method="POST" action="{{ url_for('main.help_desk') }}" class="helpdesk-form">
+                    <div class="helpdesk-trainee-meta-pills">
+                        <span class="trainee-meta-pill">👤 {{ current_user.name }}</span>
+                        <span class="trainee-meta-pill">📧 {{ current_user.email }}</span>
+                        {% if current_user.user_code %}
+                        <span class="trainee-meta-pill">🆔 {{ current_user.user_code }}</span>
+                        {% endif %}
+                    </div>
+
+                    <div class="form-group">
+                        <label for="category" class="helpdesk-label">Inquiry Category</label>
+                        <select id="category" name="category" class="helpdesk-select" required>
+                            <option value="Course & Materials">📚 Course & Materials Question</option>
+                            <option value="Quiz & Assessments">❓ Quiz & Assessment Inquiry</option>
+                            <option value="Technical Issue">🔧 Technical Issue / Platform Bug</option>
+                            <option value="Account & Profile">👤 Account & Profile Assistance</option>
+                            <option value="General Support" selected>💬 General Support & Feedback</option>
+                        </select>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="subject" class="helpdesk-label">Subject</label>
+                        <input type="text" 
+                               id="subject" 
+                               name="subject" 
+                               class="helpdesk-input" 
+                               placeholder="e.g., Question about Lecture 2 video playback" 
+                               maxlength="200" 
+                               required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="message" class="helpdesk-label">Message Details</label>
+                        <textarea id="message" 
+                                  name="message" 
+                                  rows="6" 
+                                  class="helpdesk-textarea" 
+                                  placeholder="Describe what you need assistance with in detail..." 
+                                  maxlength="5000" 
+                                  required></textarea>
+                    </div>
+
+                    <div class="helpdesk-form-actions">
+                        <button type="submit" class="btn btn-primary helpdesk-submit-btn">
+                            🚀 Send Message to Administrator
+                        </button>
+                    </div>
+                </form>
+            </section>
+        </div>
+
+        <!-- RIGHT COLUMN: Past Inquiries History -->
+        <aside class="helpdesk-side-col">
+            <section class="card helpdesk-history-panel">
+                <div class="helpdesk-history-header">
+                    <div>
+                        <h2 class="helpdesk-card-title">My Inquiries</h2>
+                        <p class="helpdesk-card-sub">History of tickets sent to admin</p>
+                    </div>
+                    <span class="helpdesk-count-badge">{{ inquiries|length }}</span>
+                </div>
+
+                {% if inquiries %}
+                <div class="helpdesk-inquiries-list">
+                    {% for item in inquiries %}
+                    <article class="helpdesk-inquiry-item">
+                        <div class="inquiry-item-top">
+                            <span class="inquiry-cat-tag">{{ item.category }}</span>
+                            <span class="inquiry-status-badge status-{{ item.status }}">{{ item.status|capitalize }}</span>
+                        </div>
+                        <h3 class="inquiry-item-subject">{{ item.subject }}</h3>
+                        <p class="inquiry-item-preview">{{ item.message }}</p>
+                        <div class="inquiry-item-footer">
+                            <small class="inquiry-date">📅 {{ item.created_at.strftime('%b %d, %Y · %I:%M %p') if item.created_at else 'Recently' }}</small>
+                            <small class="inquiry-to">To: {{ item.admin_email }}</small>
+                        </div>
+                    </article>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <div class="helpdesk-empty-state">
+                    <div class="empty-icon">📭</div>
+                    <h3>No tickets yet</h3>
+                    <p class="muted">Any inquiries you submit will appear here so you can track them.</p>
+                </div>
+                {% endif %}
+            </section>
+        </aside>
+    </div>
+</main>
+{% endblock %}
+

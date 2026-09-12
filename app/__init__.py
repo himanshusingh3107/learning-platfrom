@@ -43,6 +43,25 @@ def create_app():
     def expose_current_user():
         return {"current_user": current_user}
 
+    @app.after_request
+    def set_security_headers(response):
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "SAMEORIGIN"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
+        response.headers["Content-Security-Policy"] = (
+            "default-src 'self'; "
+            "script-src 'self' 'unsafe-inline'; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; "
+            "font-src 'self' https://fonts.gstatic.com; "
+            "img-src 'self' data: blob:; "
+            "media-src 'self' blob:; "
+            "frame-ancestors 'self'; "
+            "form-action 'self';"
+        )
+        return response
+
     # Import routes
     from app.auth import auth
     from app.routes import bp as main
@@ -52,10 +71,20 @@ def create_app():
     app.register_blueprint(main)
     app.register_blueprint(trainer)
 
-    # Create database
+    # Create database and ensure storage folders exist
     with app.app_context():
         db.create_all()
         _upgrade_existing_database()
+
+    import os
+    for folder in [
+        app.config.get("UPLOAD_FOLDER"),
+        app.config.get("THUMBNAIL_UPLOAD_FOLDER"),
+        app.config.get("PROFILE_UPLOAD_FOLDER"),
+        app.config.get("CERTIFICATE_UPLOAD_FOLDER"),
+    ]:
+        if folder:
+            os.makedirs(folder, exist_ok=True)
 
     return app
 
@@ -301,6 +330,23 @@ def _upgrade_existing_database():
                 "submitted_at DATETIME, "
                 "PRIMARY KEY (id), "
                 "FOREIGN KEY(quiz_id) REFERENCES course_quiz (id), "
+                "FOREIGN KEY(trainee_id) REFERENCES user (id)"
+                ")"
+            ))
+
+    if "help_desk_inquiry" not in tables:
+        with db.engine.begin() as connection:
+            connection.execute(text(
+                "CREATE TABLE help_desk_inquiry ("
+                "id INTEGER NOT NULL, "
+                "trainee_id INTEGER NOT NULL, "
+                "admin_email VARCHAR(120) NOT NULL, "
+                "category VARCHAR(50) NOT NULL DEFAULT 'General', "
+                "subject VARCHAR(200) NOT NULL, "
+                "message TEXT NOT NULL, "
+                "status VARCHAR(20) NOT NULL DEFAULT 'open', "
+                "created_at DATETIME, "
+                "PRIMARY KEY (id), "
                 "FOREIGN KEY(trainee_id) REFERENCES user (id)"
                 ")"
             ))

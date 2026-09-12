@@ -62,6 +62,18 @@
     </section>
     <section class="content-panel notice-panel"><div><p class="eyebrow">From your trainers</p><h2>Stay on track</h2><p class="muted">Check your assignments and notifications before your next class.</p></div><a class="btn" href="{{ url_for('main.history') }}">Open assignments</a></section>
 
+    <section class="content-panel helpdesk-banner-panel">
+        <div>
+            <p class="eyebrow">Administrator Support</p>
+            <h2>Trainee Help Desk</h2>
+            <p class="muted">Need assistance with courses, quizzes, or technical questions? Contact admin directly or submit a ticket.</p>
+        </div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center;">
+            <a class="btn" href="{{ url_for('main.help_desk') }}">🛟 Open Help Desk</a>
+            <a class="btn btn-outline" href="mailto:vs6231588@gmail.com?subject=Trainee%20Support%20Inquiry">✉️ Email Admin</a>
+        </div>
+    </section>
+
     <section class="content-panel liked-content-panel">
         <div class="section-heading">
             <div><p class="eyebrow">Saved for later</p><h2>Liked notes</h2></div>

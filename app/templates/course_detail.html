@@ -335,7 +335,7 @@
             <div class="quizzes-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px;">
                 {% for quiz in quizzes %}
                 {% set attempt = user_attempts.get(quiz.id) if user_attempts else None %}
-                <div class="quiz-card card" style="display: flex; flex-direction: column; justify-content: space-between; border-radius: 14px; padding: 22px; border: 1px solid var(--line); background: var(--bg-card, var(--card, #fff));">
+                <div class="quiz-card card" style="display: flex; flex-direction: column; justify-content: space-between; border-radius: 14px; padding: 22px; border: 1px solid var(--line);">
                     <div>
                         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; gap: 8px;">
                             <span class="quiz-badge" style="background: rgba(37, 99, 235, 0.12); color: #2563eb; font-weight: 700; font-size: 11px; padding: 4px 10px; border-radius: 999px; text-transform: uppercase; letter-spacing: 0.5px;">

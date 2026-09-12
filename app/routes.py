@@ -8,7 +8,7 @@ from app import db, current_user
 from app.models import (
     User, CourseMaterial, CoursePost, TrainerFollow,
     UserActivity, ClassSchedule, Notification, Course, CourseEnrollment,
-    CourseProgress, CourseQuiz, CourseQuizQuestion, QuizAttempt
+    CourseProgress, CourseQuiz, CourseQuizQuestion, QuizAttempt, HelpDeskInquiry
 )
 
 bp = Blueprint("main", __name__)
@@ -1031,3 +1031,62 @@ def toggle_course_progress(course_id, material_id):
         })
 
     return redirect(url_for("main.course_detail", course_id=course_id, item=material.id))
+
+
+@bp.route("/help-desk", methods=["GET", "POST"])
+def help_desk():
+    if not current_user.is_authenticated:
+        flash("Please log in to access the Trainee Help Desk.", "warning")
+        return redirect(url_for("auth.login"))
+
+    if current_user.role != "trainee":
+        flash("The Help Desk is available for trainees.", "info")
+        return redirect(url_for("main.dashboard"))
+
+    admin_email = current_app.config.get("ADMIN_EMAIL", "vs6231588@gmail.com")
+
+    if request.method == "POST":
+        category = request.form.get("category", "General").strip()[:50]
+        subject = request.form.get("subject", "").strip()[:200]
+        message = request.form.get("message", "").strip()
+
+        if not subject or not message:
+            flash("Please fill in both the subject and your message.", "danger")
+            return redirect(url_for("main.help_desk"))
+
+        if len(message) > 5000:
+            flash("Message must be 5,000 characters or fewer.", "danger")
+            return redirect(url_for("main.help_desk"))
+
+        inquiry = HelpDeskInquiry(
+            trainee_id=current_user.id,
+            admin_email=admin_email,
+            category=category,
+            subject=subject,
+            message=message,
+            status="open"
+        )
+        db.session.add(inquiry)
+
+        # Notify active admin users in-app
+        admins = User.query.filter_by(role="admin", is_active=True).all()
+        for admin in admins:
+            db.session.add(Notification(
+                user_id=admin.id,
+                title=f"New Help Desk Ticket: {subject[:40]}",
+                message=f"Trainee {current_user.name} ({current_user.email}) submitted a {category} ticket: {message[:120]}"
+            ))
+
+        db.session.commit()
+        flash(f"Your inquiry has been submitted to the administrator ({admin_email}). We will get back to you shortly!", "success")
+        return redirect(url_for("main.help_desk"))
+
+    inquiries = HelpDeskInquiry.query.filter_by(
+        trainee_id=current_user.id
+    ).order_by(HelpDeskInquiry.created_at.desc()).all()
+
+    return render_template(
+        "help_desk.html",
+        inquiries=inquiries,
+        admin_email=admin_email
+    )

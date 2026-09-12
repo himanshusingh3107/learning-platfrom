@@ -30,6 +30,9 @@
         <a class="rail-button {{ 'active' if request.endpoint == 'main.dashboard' else '' }}" href="{{ url_for('main.dashboard') }}" aria-label="Dashboard" title="Dashboard">⌂</a>
         <a class="rail-button {{ 'active' if request.endpoint in ['main.courses', 'main.index'] else '' }}" href="{{ url_for('main.courses') }}" aria-label="Solutions" title="Solutions">▣</a>
         <a class="rail-button {{ 'active' if request.endpoint in ['main.explore_courses', 'main.course_detail'] else '' }}" href="{{ url_for('main.explore_courses') }}" aria-label="{{ 'Enrolled Courses' if current_user.role == 'trainee' else 'Courses' }}" title="{{ 'Enrolled Courses' if current_user.role == 'trainee' else 'Courses' }}">&#128218;</a>
+        {% if current_user.role == 'trainee' %}
+        <a class="rail-button {{ 'active' if request.endpoint == 'main.help_desk' else '' }}" href="{{ url_for('main.help_desk') }}" aria-label="Help Desk" title="Trainee Help Desk">🛟</a>
+        {% endif %}
         <a class="rail-button {{ 'active' if request.endpoint == 'main.settings' else '' }}" href="{{ url_for('main.settings') }}" aria-label="Settings" title="Settings">⚙</a>
         <a class="rail-button {{ 'active' if request.endpoint == 'main.profile' else '' }}" href="{{ url_for('main.profile') }}" aria-label="Profile" title="Profile">☑</a>
     </aside>
@@ -59,6 +62,9 @@
                     <button type="submit" aria-label="Search">&#128269;</button>
                 </form>
                 <div class="top-actions">
+                    {% if current_user.role == 'trainee' %}
+                    <a class="icon-button {{ 'active' if request.endpoint == 'main.help_desk' else '' }}" href="{{ url_for('main.help_desk') }}" aria-label="Trainee Help Desk" title="Trainee Help Desk">🛟</a>
+                    {% endif %}
                     <a class="icon-button" href="{{ url_for('main.settings') }}" aria-label="Settings">&#9881;</a>
                     <a class="notification-button" href="{{ url_for('main.dashboard') }}#notifications" aria-label="Notifications">&#128276;<b>{{ current_user.notifications|selectattr('is_read', 'equalto', false)|list|length }}</b></a>
                 </div>

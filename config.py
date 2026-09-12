@@ -1,5 +1,6 @@
 import os
 import secrets
+from datetime import timedelta
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -29,9 +30,12 @@ class Config:
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False
 
+    ADMIN_EMAIL = os.getenv("ADMIN_EMAIL", "vs6231588@gmail.com")
+
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
     SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "0") == "1"
+    PERMANENT_SESSION_LIFETIME = timedelta(days=7)
 
     ALLOWED_EXTENSIONS = {
         "jpg",

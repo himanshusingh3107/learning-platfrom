@@ -85,6 +85,7 @@ def signup():
 
         db.session.add(user)
         db.session.commit()
+        session.clear()
         session["user_id"] = user.id
         return redirect(url_for("auth.account_setup"))
 
@@ -149,6 +150,7 @@ def login():
             flash(f"Your {user.role} account is waiting for {approver} approval.", "warning")
             return redirect(url_for("auth.login"))
 
+        session.clear()
         session["user_id"] = user.id
 
         return redirect(url_for("main.dashboard"))
@@ -158,7 +160,7 @@ def login():
 
 @auth.route("/logout", methods=["POST"])
 def logout():
-    session.pop("user_id", None)
+    session.clear()
 
     flash(
         "You have been logged out.",

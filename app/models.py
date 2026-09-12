@@ -1,6 +1,7 @@
 import uuid
 from app import db
 from sqlalchemy import UniqueConstraint, event
+from werkzeug.security import generate_password_hash, check_password_hash
 
 
 class User(db.Model):
@@ -61,10 +62,24 @@ class User(db.Model):
     security_answer = db.Column(db.String(255), nullable=True)
 
     def set_password(self, password):
-        self.password_hash = password
+        self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
-        return self.password_hash == password
+        if not self.password_hash or not password:
+            return False
+        try:
+            if check_password_hash(self.password_hash, password):
+                return True
+        except Exception:
+            pass
+        if self.password_hash == password:
+            try:
+                self.password_hash = generate_password_hash(password)
+                db.session.commit()
+            except Exception:
+                pass
+            return True
+        return False
 
 
 @event.listens_for(User, "before_insert")
@@ -368,3 +383,58 @@ class CoursePost(db.Model):
 
     def __repr__(self):
         return f"<User {self.email}>"
+
+
+class HelpDeskInquiry(db.Model):
+
+    id = db.Column(
+        db.Integer,
+        primary_key=True
+    )
+
+    trainee_id = db.Column(
+        db.Integer,
+        db.ForeignKey("user.id"),
+        nullable=False
+    )
+
+    admin_email = db.Column(
+        db.String(120),
+        nullable=False,
+        default="vs6231588@gmail.com"
+    )
+
+    category = db.Column(
+        db.String(50),
+        nullable=False,
+        default="General"
+    )
+
+    subject = db.Column(
+        db.String(200),
+        nullable=False
+    )
+
+    message = db.Column(
+        db.Text,
+        nullable=False
+    )
+
+    status = db.Column(
+        db.String(20),
+        nullable=False,
+        default="open"
+    )
+
+    created_at = db.Column(
+        db.DateTime,
+        server_default=db.func.now()
+    )
+
+    trainee = db.relationship(
+        "User",
+        backref="help_desk_inquiries"
+    )
+
+    def __repr__(self):
+        return f"<HelpDeskInquiry #{self.id} {self.subject}>"

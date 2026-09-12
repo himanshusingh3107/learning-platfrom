@@ -2622,8 +2622,500 @@ td button {
 }
 
 /* ==========================================================================
-   Quiz & Assessment Styles
+   Quiz & Assessment Modern Design System
    ========================================================================== */
+
+/* Quiz Container & Breadcrumbs */
+.take-quiz-main {
+    max-width: 820px;
+    margin: 0 auto;
+    padding-bottom: 60px;
+}
+
+.course-breadcrumb {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    font-size: 13.5px;
+    font-weight: 600;
+}
+
+.course-breadcrumb a {
+    color: var(--teal);
+    text-decoration: none;
+}
+
+.course-breadcrumb a:hover {
+    color: var(--purple-dark);
+    text-decoration: underline;
+}
+
+.breadcrumb-separator {
+    color: var(--line);
+    font-size: 14px;
+}
+
+.breadcrumb-current {
+    color: var(--muted);
+}
+
+/* Quiz Hero / Header Banner */
+.quiz-header-banner {
+    padding: 26px 28px;
+    border-radius: 18px;
+    margin-bottom: 24px;
+    background: var(--surface);
+    border: 1.5px solid var(--line);
+    box-shadow: var(--shadow-soft);
+}
+
+.quiz-header-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    flex-wrap: wrap;
+}
+
+.quiz-header-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.quiz-badge-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.quiz-assessment-tag {
+    background: rgba(123, 99, 216, 0.12);
+    color: var(--purple);
+    font-weight: 800;
+    font-size: 11px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.quiz-course-tag {
+    color: var(--muted);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.quiz-main-title {
+    margin: 0 0 8px;
+    font-size: clamp(22px, 5vw, 30px);
+    font-weight: 800;
+    line-height: 1.25;
+    color: var(--ink);
+}
+
+.quiz-main-desc {
+    margin: 0 0 16px;
+    font-size: 14.5px;
+    line-height: 1.55;
+    color: var(--muted);
+}
+
+.quiz-meta-pills {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.quiz-meta-pill {
+    font-size: 12px;
+    font-weight: 600;
+    background: rgba(0, 0, 0, 0.04);
+    color: var(--ink);
+    padding: 5px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--line);
+}
+
+.quiz-back-btn {
+    font-size: 13px;
+    padding: 8px 16px;
+    white-space: nowrap;
+    border-radius: 10px;
+}
+
+/* Question Taking Card */
+.take-quiz-card {
+    background: var(--surface);
+    border: 1.5px solid var(--line);
+    border-radius: 16px;
+    padding: 26px 28px;
+    margin-bottom: 22px;
+    box-shadow: var(--shadow-soft);
+    transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.take-quiz-card:hover {
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.06);
+}
+
+.quiz-question-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 14px;
+}
+
+.quiz-question-step-badge {
+    font-size: 11.5px;
+    font-weight: 800;
+    color: var(--purple);
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+}
+
+.quiz-points-tag {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--muted);
+    background: rgba(0, 0, 0, 0.04);
+    padding: 3px 9px;
+    border-radius: 6px;
+}
+
+.quiz-question-prompt {
+    margin: 0 0 20px;
+    font-size: 18px;
+    font-weight: 700;
+    line-height: 1.45;
+    color: var(--ink);
+}
+
+/* Choice Group & Radio Items */
+.quiz-choice-group {
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+}
+
+.quiz-choice-option {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 14px 18px;
+    border-radius: 12px;
+    border: 2px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    user-select: none;
+}
+
+.quiz-choice-option input[type="radio"] {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--purple, #7b63d8);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.opt-label-badge {
+    width: 32px;
+    height: 32px;
+    flex-shrink: 0;
+    border-radius: 10px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 13px;
+    background: rgba(123, 99, 216, 0.1);
+    color: var(--purple);
+    border: 1px solid rgba(123, 99, 216, 0.2);
+    transition: all 0.2s ease;
+}
+
+.opt-label-text {
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--ink);
+    flex: 1;
+    line-height: 1.4;
+}
+
+/* Option Hover & Active Checked States */
+.quiz-choice-option:hover {
+    border-color: var(--purple, #7b63d8);
+    background: rgba(123, 99, 216, 0.04);
+    transform: translateX(2px);
+}
+
+.quiz-choice-option:has(input[type="radio"]:checked) {
+    border-color: var(--purple, #7b63d8);
+    background: rgba(123, 99, 216, 0.09);
+    box-shadow: 0 0 0 1px var(--purple, #7b63d8), 0 4px 14px rgba(123, 99, 216, 0.12);
+}
+
+.quiz-choice-option:has(input[type="radio"]:checked) .opt-label-badge {
+    background: var(--purple, #7b63d8);
+    color: #ffffff;
+    border-color: var(--purple, #7b63d8);
+}
+
+.quiz-choice-option:has(input[type="radio"]:checked) .opt-label-text {
+    font-weight: 700;
+    color: var(--ink);
+}
+
+/* Submit Action Bar */
+.quiz-submit-bar {
+    position: sticky;
+    bottom: 18px;
+    z-index: 15;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    padding: 18px 24px;
+    border-radius: 16px;
+    border: 1.5px solid var(--line);
+    background: var(--surface);
+    backdrop-filter: blur(16px);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+    margin-top: 10px;
+}
+
+.quiz-submit-hint {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13.5px;
+    color: var(--muted);
+}
+
+.hint-icon {
+    font-size: 18px;
+}
+
+.quiz-submit-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.quiz-submit-btn {
+    padding: 12px 28px;
+    font-size: 15px;
+    font-weight: 700;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #ffffff;
+    border: 1px solid #10b981;
+    box-shadow: 0 6px 18px rgba(16, 185, 129, 0.28);
+    cursor: pointer;
+}
+
+.quiz-submit-btn:hover {
+    background: linear-gradient(135deg, #059669, #047857);
+    transform: translateY(-1px);
+}
+
+/* Scorecard & Results Banner */
+.quiz-result-scorecard {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    flex-wrap: wrap;
+    padding: 22px 24px;
+    border-radius: 16px;
+    margin-top: 22px;
+    border: 1.5px solid;
+}
+
+.quiz-result-scorecard.score-high {
+    background: rgba(16, 185, 129, 0.08);
+    border-color: rgba(16, 185, 129, 0.3);
+}
+
+.quiz-result-scorecard.score-mid {
+    background: rgba(59, 130, 246, 0.08);
+    border-color: rgba(59, 130, 246, 0.3);
+}
+
+.quiz-result-scorecard.score-low {
+    background: rgba(239, 68, 68, 0.08);
+    border-color: rgba(239, 68, 68, 0.3);
+}
+
+.scorecard-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.scorecard-icon {
+    font-size: 44px;
+    line-height: 1;
+}
+
+.scorecard-title {
+    margin: 0 0 4px;
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--ink);
+}
+
+.scorecard-desc {
+    margin: 0;
+    font-size: 14px;
+    color: var(--muted);
+}
+
+.scorecard-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
+/* Review Mode */
+.review-section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 18px;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.quiz-question-review-card {
+    padding: 24px 26px;
+    border-radius: 16px;
+    margin-bottom: 20px;
+    border: 1.5px solid var(--line);
+    background: var(--surface);
+    box-shadow: var(--shadow-soft);
+}
+
+.status-result-badge {
+    font-size: 12px;
+    font-weight: 800;
+    padding: 4px 12px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.badge-correct {
+    background: rgba(16, 185, 129, 0.12);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.badge-incorrect {
+    background: rgba(239, 68, 68, 0.12);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.3);
+}
+
+.review-options-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.quiz-option-review-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 13px 18px;
+    border-radius: 12px;
+    border: 1.5px solid;
+    transition: all 0.15s ease;
+}
+
+.quiz-option-review-item.opt-state-correct {
+    border-color: #10b981;
+    background: rgba(16, 185, 129, 0.08);
+}
+
+.quiz-option-review-item.opt-state-incorrect {
+    border-color: #ef4444;
+    background: rgba(239, 68, 68, 0.06);
+}
+
+.quiz-option-review-item.opt-state-neutral {
+    border-color: var(--line);
+    background: transparent;
+    opacity: 0.85;
+}
+
+.opt-review-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.opt-review-badge {
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 12.5px;
+    background: rgba(0, 0, 0, 0.06);
+    color: var(--ink);
+}
+
+.opt-review-badge.badge-success {
+    background: #10b981;
+    color: #ffffff;
+}
+
+.opt-review-badge.badge-danger {
+    background: #ef4444;
+    color: #ffffff;
+}
+
+.opt-review-text {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ink);
+}
+
+.review-pill-tag {
+    font-size: 12px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: 6px;
+}
+
+.review-pill-tag.tag-success {
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.12);
+}
+
+.review-pill-tag.tag-danger {
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.12);
+}
+
+.quiz-review-bottom-nav {
+    display: flex;
+    justify-content: center;
+    gap: 14px;
+    margin-top: 24px;
+}
+
+/* Trainer Quiz Management Admin Styles */
 .quiz-question-admin-card {
     padding: 18px 20px;
     border-radius: 12px;
@@ -2682,49 +3174,10 @@ td button {
     font-weight: 700;
 }
 
-.take-quiz-card {
+.quiz-card {
     background: var(--surface);
     border: 1.5px solid var(--line);
-    border-radius: 14px;
-    padding: 24px;
-    transition: box-shadow 0.2s ease;
-}
-
-.take-quiz-card:hover {
-    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.05);
-}
-
-.quiz-choice-option {
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 14px 16px;
-    border-radius: 10px;
-    border: 1.5px solid var(--line);
-    cursor: pointer;
-    background: var(--surface);
-    color: var(--ink);
-    transition: all 0.15s ease;
-}
-
-.quiz-choice-option:hover {
-    border-color: var(--purple, #2563eb);
-    background: rgba(99, 102, 241, 0.05);
-}
-
-.quiz-choice-option input[type="radio"]:checked ~ .opt-label-badge {
-    background: var(--purple, #2563eb);
-    color: #ffffff;
-}
-
-.quiz-option-review-pill {
-    padding: 12px 16px;
-    border-radius: 10px;
-    border: 1.5px solid var(--line);
-    background: var(--surface);
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 .quiz-card:hover {
@@ -2733,7 +3186,9 @@ td button {
     border-color: var(--purple, #2563eb);
 }
 
-/* Dark theme overrides for Quiz components */
+/* ==========================================================================
+   Dark Theme Overrides for Quiz Components
+   ========================================================================== */
 .dark-theme .quiz-card,
 .dark-theme .take-quiz-card,
 .dark-theme .quiz-question-admin-card,
@@ -2742,17 +3197,63 @@ td button {
 .dark-theme .quiz-submit-bar {
     background: #101c2e;
     border-color: rgba(164, 182, 225, 0.22);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+
+.dark-theme .quiz-question-prompt {
+    color: #f8fafc;
+}
+
+.dark-theme .quiz-main-title {
+    color: #f8fafc;
+}
+
+.dark-theme .quiz-meta-pill {
+    background: #142235;
+    border-color: rgba(164, 182, 225, 0.2);
+    color: #e2e8f0;
 }
 
 .dark-theme .quiz-choice-option {
     background: #142235;
-    border-color: rgba(164, 182, 225, 0.22);
+    border-color: rgba(164, 182, 225, 0.2);
     color: #f1f5f9;
 }
 
 .dark-theme .quiz-choice-option:hover {
     border-color: #8879f2;
     background: rgba(136, 121, 242, 0.1);
+}
+
+.dark-theme .quiz-choice-option:has(input[type="radio"]:checked) {
+    border-color: #8879f2;
+    background: rgba(136, 121, 242, 0.2);
+    box-shadow: 0 0 0 1px #8879f2, 0 4px 16px rgba(136, 121, 242, 0.25);
+}
+
+.dark-theme .opt-label-badge {
+    background: rgba(136, 121, 242, 0.2);
+    color: #a594f9;
+    border-color: rgba(136, 121, 242, 0.35);
+}
+
+.dark-theme .quiz-choice-option:has(input[type="radio"]:checked) .opt-label-badge {
+    background: #8879f2;
+    color: #ffffff;
+    border-color: #8879f2;
+}
+
+.dark-theme .opt-label-text {
+    color: #f1f5f9;
+}
+
+.dark-theme .quiz-question-step-badge {
+    color: #a594f9;
+}
+
+.dark-theme .quiz-points-tag {
+    background: rgba(255, 255, 255, 0.07);
+    color: #cbd5e1;
 }
 
 .dark-theme .quiz-option-pill {
@@ -2766,10 +3267,22 @@ td button {
     background: rgba(16, 185, 129, 0.15);
 }
 
-.dark-theme .quiz-option-review-pill {
+.dark-theme .quiz-option-review-item.opt-state-neutral {
     background: #142235;
-    border-color: rgba(164, 182, 225, 0.22);
+    border-color: rgba(164, 182, 225, 0.18);
+}
+
+.dark-theme .opt-review-text {
     color: #f1f5f9;
+}
+
+.dark-theme .opt-review-badge {
+    background: rgba(255, 255, 255, 0.1);
+    color: #f1f5f9;
+}
+
+.dark-theme .scorecard-title {
+    color: #f8fafc;
 }
 
 .dark-theme .app-shell.is-guest .workspace-panel {
@@ -2798,6 +3311,425 @@ td button {
         border-color: rgba(164, 182, 225, 0.18);
     }
 }
+
+/* ==========================================================================
+   Trainee Help Desk Styles
+   ========================================================================== */
+.helpdesk-main {
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.helpdesk-header-banner {
+    margin-bottom: 24px;
+    background: linear-gradient(135deg, rgba(136, 121, 242, 0.08), rgba(98, 83, 203, 0.04));
+    border: 1.5px solid var(--line);
+    border-radius: 18px;
+    padding: 24px 28px;
+}
+
+.helpdesk-badge-group {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+
+.helpdesk-tag {
+    font-size: 11.5px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background: linear-gradient(135deg, #8879f2, #6253cb);
+    color: #ffffff;
+    padding: 3px 10px;
+    border-radius: 999px;
+}
+
+.helpdesk-status-pill {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: #10b981;
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    padding: 3px 10px;
+    border-radius: 999px;
+}
+
+.helpdesk-main-title {
+    margin: 0 0 8px;
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--ink);
+    letter-spacing: -0.02em;
+}
+
+.helpdesk-main-desc {
+    margin: 0;
+    font-size: 14.5px;
+    color: var(--muted);
+    max-width: 760px;
+    line-height: 1.55;
+}
+
+.helpdesk-layout-grid {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 24px;
+    align-items: start;
+}
+
+.helpdesk-action-card {
+    background: var(--surface);
+    border: 1.5px solid var(--line);
+    border-radius: 18px;
+    padding: 24px;
+    margin-bottom: 20px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+}
+
+.helpdesk-direct-email-card {
+    border-left: 4px solid var(--purple, #8879f2);
+    background: linear-gradient(180deg, rgba(136, 121, 242, 0.04), var(--surface));
+}
+
+.helpdesk-card-header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 18px;
+}
+
+.helpdesk-icon-bubble {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: rgba(136, 121, 242, 0.12);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+}
+
+.helpdesk-card-title {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--ink);
+}
+
+.helpdesk-card-sub {
+    margin: 2px 0 0;
+    font-size: 13px;
+    color: var(--muted);
+}
+
+.helpdesk-admin-info-box {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 14px;
+    background: var(--bg-card, rgba(240, 243, 250, 0.6));
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin-bottom: 12px;
+}
+
+.admin-email-meta {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.admin-label {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--muted);
+    letter-spacing: 0.06em;
+}
+
+.admin-email-display {
+    font-family: var(--font-mono, monospace);
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--purple, #6253cb);
+}
+
+.helpdesk-card-hint {
+    margin: 0;
+    font-size: 12.5px;
+    color: var(--muted);
+}
+
+.helpdesk-trainee-meta-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 18px;
+}
+
+.trainee-meta-pill {
+    font-size: 12px;
+    font-weight: 600;
+    background: rgba(0, 0, 0, 0.04);
+    border: 1px solid var(--line);
+    color: var(--ink);
+    padding: 4px 10px;
+    border-radius: 999px;
+}
+
+.helpdesk-form {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.helpdesk-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--ink);
+    margin-bottom: 6px;
+}
+
+.helpdesk-select,
+.helpdesk-input,
+.helpdesk-textarea {
+    width: 100%;
+    padding: 10px 14px;
+    font-size: 14px;
+    border-radius: 10px;
+    border: 1.5px solid var(--line);
+    background: var(--surface);
+    color: var(--ink);
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+}
+
+.helpdesk-select:focus,
+.helpdesk-input:focus,
+.helpdesk-textarea:focus {
+    border-color: var(--purple, #8879f2);
+    box-shadow: 0 0 0 3px rgba(136, 121, 242, 0.15);
+}
+
+.helpdesk-textarea {
+    resize: vertical;
+    min-height: 120px;
+    font-family: inherit;
+}
+
+.helpdesk-submit-btn {
+    width: 100%;
+    padding: 12px 20px;
+    font-size: 15px;
+    font-weight: 700;
+}
+
+.helpdesk-history-panel {
+    background: var(--surface);
+    border: 1.5px solid var(--line);
+    border-radius: 18px;
+    padding: 22px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+}
+
+.helpdesk-history-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--line);
+}
+
+.helpdesk-count-badge {
+    background: rgba(136, 121, 242, 0.15);
+    color: var(--purple, #6253cb);
+    font-weight: 700;
+    font-size: 12px;
+    padding: 2px 8px;
+    border-radius: 999px;
+}
+
+.helpdesk-inquiries-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.helpdesk-inquiry-item {
+    padding: 14px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: var(--bg-card, rgba(240, 243, 250, 0.4));
+    transition: transform 0.15s ease, border-color 0.15s ease;
+}
+
+.helpdesk-inquiry-item:hover {
+    border-color: var(--purple, #8879f2);
+    transform: translateY(-1px);
+}
+
+.inquiry-item-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+
+.inquiry-cat-tag {
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--purple, #6253cb);
+    text-transform: uppercase;
+}
+
+.inquiry-status-badge {
+    font-size: 10.5px;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 999px;
+    text-transform: uppercase;
+}
+
+.status-open {
+    background: rgba(245, 158, 11, 0.12);
+    color: #b45309;
+}
+
+.status-resolved {
+    background: rgba(16, 185, 129, 0.12);
+    color: #047857;
+}
+
+.inquiry-item-subject {
+    margin: 0 0 6px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--ink);
+}
+
+.inquiry-item-preview {
+    margin: 0 0 8px;
+    font-size: 12.5px;
+    color: var(--muted);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    line-height: 1.45;
+}
+
+.inquiry-item-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 11px;
+    color: var(--muted);
+}
+
+.helpdesk-empty-state {
+    text-align: center;
+    padding: 36px 16px;
+}
+
+.helpdesk-empty-state .empty-icon {
+    font-size: 36px;
+    margin-bottom: 8px;
+}
+
+.helpdesk-empty-state h3 {
+    margin: 0 0 4px;
+    font-size: 15px;
+    color: var(--ink);
+}
+
+.helpdesk-banner-panel {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 16px;
+    background: linear-gradient(135deg, rgba(136, 121, 242, 0.08), rgba(98, 83, 203, 0.04));
+    border: 1.5px solid var(--line);
+}
+
+/* Dark Theme Overrides for Help Desk */
+.dark-theme .helpdesk-header-banner,
+.dark-theme .helpdesk-action-card,
+.dark-theme .helpdesk-history-panel,
+.dark-theme .helpdesk-banner-panel {
+    background: #101c2e;
+    border-color: rgba(164, 182, 225, 0.22);
+}
+
+.dark-theme .helpdesk-direct-email-card {
+    background: linear-gradient(180deg, rgba(136, 121, 242, 0.08), #101c2e);
+    border-left-color: #8879f2;
+}
+
+.dark-theme .helpdesk-main-title,
+.dark-theme .helpdesk-card-title,
+.dark-theme .helpdesk-label,
+.dark-theme .inquiry-item-subject {
+    color: #f8fafc;
+}
+
+.dark-theme .helpdesk-admin-info-box {
+    background: #142235;
+    border-color: rgba(164, 182, 225, 0.2);
+}
+
+.dark-theme .admin-email-display {
+    color: #a594f9;
+}
+
+.dark-theme .trainee-meta-pill {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(164, 182, 225, 0.2);
+    color: #e2e8f0;
+}
+
+.dark-theme .helpdesk-select,
+.dark-theme .helpdesk-input,
+.dark-theme .helpdesk-textarea {
+    background: #142235;
+    border-color: rgba(164, 182, 225, 0.22);
+    color: #f1f5f9;
+}
+
+.dark-theme .helpdesk-inquiry-item {
+    background: #142235;
+    border-color: rgba(164, 182, 225, 0.18);
+}
+
+.dark-theme .inquiry-cat-tag {
+    color: #a594f9;
+}
+
+.dark-theme .status-open {
+    background: rgba(245, 158, 11, 0.18);
+    color: #fbbf24;
+}
+
+.dark-theme .status-resolved {
+    background: rgba(16, 185, 129, 0.18);
+    color: #34d399;
+}
+
+@media (max-width: 1024px) {
+    .helpdesk-layout-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+
 
 
 
