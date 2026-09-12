@@ -18,7 +18,6 @@ class Config:
         SQLALCHEMY_DATABASE_URI = f"sqlite+libsql://{turso_host}/?secure=true"
         SQLALCHEMY_ENGINE_OPTIONS = {
             "connect_args": {"auth_token": turso_auth_token},
-            "pool_pre_ping": True,
             "pool_recycle": 300,
         }
     else:
@@ -29,7 +28,7 @@ class Config:
 
     SECRET_KEY = os.getenv(
         "SECRET_KEY",
-        secrets.token_hex(32)
+        "1bc27845204668fd29af7f0b1a85c053c6aa05fb71f19cf335c3ba9192fedefa"
     )
 
     SQLALCHEMY_TRACK_MODIFICATIONS = False

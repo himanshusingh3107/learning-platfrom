@@ -3,7 +3,7 @@ import json
 import uuid
 from datetime import datetime, timedelta
 from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, send_from_directory, jsonify
-from sqlalchemy import or_, select
+from sqlalchemy import or_, select, text
 from app import db, current_user
 from app.models import (
     User, CourseMaterial, CoursePost, TrainerFollow,
@@ -168,31 +168,19 @@ def dashboard():
         flash("Please log in to open your dashboard.", "warning")
         return redirect(url_for("auth.login"))
 
-    history = UserActivity.query.filter(
-        UserActivity.user_id == current_user.id,
-        UserActivity.activity_type.in_(["watch", "download"]),
-        UserActivity.material_id.isnot(None)
-    ).join(
-        CourseMaterial,
-        UserActivity.material_id == CourseMaterial.id
-    ).order_by(
-        UserActivity.created_at.desc()
-    ).limit(5).all()
+    role = current_user.role
 
-    liked_materials = UserActivity.query.filter_by(
-        user_id=current_user.id,
-        activity_type="like"
-    ).join(
-        CourseMaterial,
-        UserActivity.material_id == CourseMaterial.id
-    ).order_by(
-        UserActivity.created_at.desc()
-    ).all()
-    liked_notes = [activity.material for activity in liked_materials if activity.material.material_type != "video"]
-    liked_videos = [activity.material for activity in liked_materials if activity.material.material_type == "video"]
-
+    history = []
+    liked_notes = []
+    liked_videos = []
+    upcoming_classes = []
+    notifications = []
+    enrolled_courses = []
+    explore_courses = []
     trainer_courses = []
-    if current_user.role == "trainer":
+    stats = {}
+
+    if role == "trainer":
         trainer_courses = Course.query.filter_by(
             trainer_id=current_user.id
         ).order_by(Course.created_at.desc()).all()
@@ -202,7 +190,42 @@ def dashboard():
         notifications = Notification.query.filter_by(
             user_id=current_user.id
         ).order_by(Notification.created_at.desc()).limit(5).all()
-    else:
+
+        stats_row = db.session.execute(text("""
+            SELECT 
+                (SELECT COUNT(*) FROM course_material),
+                (SELECT COUNT(*) FROM user WHERE role = 'trainee')
+        """)).fetchone()
+        stats = {
+            "courses": len(trainer_courses),
+            "materials": stats_row[0] if stats_row else 0,
+            "trainees": stats_row[1] if stats_row else 0,
+        }
+
+    elif role == "trainee":
+        history = UserActivity.query.filter(
+            UserActivity.user_id == current_user.id,
+            UserActivity.activity_type.in_(["watch", "download"]),
+            UserActivity.material_id.isnot(None)
+        ).join(
+            CourseMaterial,
+            UserActivity.material_id == CourseMaterial.id
+        ).order_by(
+            UserActivity.created_at.desc()
+        ).limit(5).all()
+
+        liked_materials = UserActivity.query.filter_by(
+            user_id=current_user.id,
+            activity_type="like"
+        ).join(
+            CourseMaterial,
+            UserActivity.material_id == CourseMaterial.id
+        ).order_by(
+            UserActivity.created_at.desc()
+        ).all()
+        liked_notes = [activity.material for activity in liked_materials if activity.material.material_type != "video"]
+        liked_videos = [activity.material for activity in liked_materials if activity.material.material_type == "video"]
+
         followed_trainer_ids = db.session.query(TrainerFollow.trainer_id).filter_by(
             trainee_id=current_user.id
         )
@@ -214,23 +237,31 @@ def dashboard():
             user_id=current_user.id
         ).order_by(Notification.created_at.desc()).limit(5).all()
 
-    stats = {
-        "materials": CourseMaterial.query.count(),
-        "trainers": User.query.filter_by(role="trainer").count(),
-        "trainees": User.query.filter_by(role="trainee").count(),
-        "users": User.query.count(),
-        "courses": len(trainer_courses) if current_user.role == "trainer" else Course.query.count(),
-    }
-    enrolled_courses = []
-    if current_user.role == "trainee":
         enrolled_courses = (
             Course.query.join(CourseEnrollment, Course.id == CourseEnrollment.course_id)
             .filter(CourseEnrollment.trainee_id == current_user.id)
             .order_by(CourseEnrollment.created_at.desc())
             .all()
         )
+        explore_courses = Course.query.order_by(Course.created_at.desc()).limit(6).all()
 
-    explore_courses = Course.query.order_by(Course.created_at.desc()).limit(6).all()
+    else:
+        # Admin and Super Admin
+        stats_row = db.session.execute(text("""
+            SELECT 
+                (SELECT COUNT(*) FROM course_material),
+                (SELECT COUNT(*) FROM user WHERE role = 'trainer'),
+                (SELECT COUNT(*) FROM user WHERE role = 'trainee'),
+                (SELECT COUNT(*) FROM user),
+                (SELECT COUNT(*) FROM course)
+        """)).fetchone()
+        stats = {
+            "materials": stats_row[0] if stats_row else 0,
+            "trainers": stats_row[1] if stats_row else 0,
+            "trainees": stats_row[2] if stats_row else 0,
+            "users": stats_row[3] if stats_row else 0,
+            "courses": stats_row[4] if stats_row else 0,
+        }
 
     return render_template(
         "dashboard.html",

@@ -1,5 +1,4 @@
-from flask import Flask
-from flask import session
+from flask import Flask, session, g
 from flask_sqlalchemy import SQLAlchemy
 from config import Config
 from sqlalchemy import inspect, text
@@ -14,8 +13,10 @@ class CurrentUser:
         user_id = session.get("user_id")
         if not user_id:
             return None
-        from app.models import User
-        return db.session.get(User, user_id)
+        if not hasattr(g, "_current_user") or g._current_user is None or getattr(g._current_user, "id", None) != user_id:
+            from app.models import User
+            g._current_user = db.session.get(User, user_id)
+        return g._current_user
 
     @property
     def is_authenticated(self):
