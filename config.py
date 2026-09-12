@@ -3,6 +3,8 @@ import secrets
 from datetime import timedelta
 from dotenv import load_dotenv
 
+from sqlalchemy.pool import NullPool
+
 load_dotenv()
 
 
@@ -15,7 +17,8 @@ class Config:
         turso_host = turso_url.replace("libsql://", "").replace("https://", "").replace("http://", "").rstrip("/")
         SQLALCHEMY_DATABASE_URI = f"sqlite+libsql://{turso_host}?secure=true"
         SQLALCHEMY_ENGINE_OPTIONS = {
-            "connect_args": {"auth_token": turso_auth_token}
+            "connect_args": {"auth_token": turso_auth_token},
+            "poolclass": NullPool,
         }
     else:
         SQLALCHEMY_DATABASE_URI = os.getenv(
