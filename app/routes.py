@@ -29,6 +29,11 @@ def allowed_file(filename):
            filename.rsplit(".", 1)[1].lower() in current_app.config["ALLOWED_EXTENSIONS"]
 
 
+@bp.route("/api/version")
+def version():
+    return jsonify({"version": "8d6ff7d-v2", "status": "optimized"})
+
+
 @bp.route("/")
 def index():
     materials = []
