@@ -1,4 +1,4 @@
-from flask import Flask, session, g
+from flask import Flask, session, g, request
 from flask_sqlalchemy import SQLAlchemy
 from config import Config
 from sqlalchemy import inspect, text
