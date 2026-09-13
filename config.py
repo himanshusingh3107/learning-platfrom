@@ -39,6 +39,7 @@ class Config:
     SESSION_COOKIE_SAMESITE = "Lax"
     SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "0") == "1"
     PERMANENT_SESSION_LIFETIME = timedelta(days=7)
+    SEND_FILE_MAX_AGE_DEFAULT = 31536000
 
     ALLOWED_EXTENSIONS = {
         "jpg",

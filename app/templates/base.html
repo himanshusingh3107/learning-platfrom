@@ -66,7 +66,9 @@
                     <a class="icon-button {{ 'active' if request.endpoint == 'main.help_desk' else '' }}" href="{{ url_for('main.help_desk') }}" aria-label="Trainee Help Desk" title="Trainee Help Desk">🛟</a>
                     {% endif %}
                     <a class="icon-button" href="{{ url_for('main.settings') }}" aria-label="Settings">&#9881;</a>
-                    <a class="notification-button" href="{{ url_for('main.dashboard') }}#notifications" aria-label="Notifications">&#128276;<b>{{ current_user.notifications|selectattr('is_read', 'equalto', false)|list|length }}</b></a>
+                    {% if current_user.role in ['trainee', 'trainer'] %}
+                    <a class="notification-button" href="{{ url_for('main.dashboard') }}#notifications" aria-label="Notifications">&#128276;<b>{{ current_user.unread_notifications_count }}</b></a>
+                    {% endif %}
                 </div>
             {% endif %}
         </nav>

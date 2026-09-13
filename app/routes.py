@@ -4,6 +4,7 @@ import uuid
 from datetime import datetime, timedelta
 from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, send_from_directory, jsonify
 from sqlalchemy import or_, select, text
+from sqlalchemy.orm import joinedload
 from app import db, current_user
 from app.models import (
     User, CourseMaterial, CoursePost, TrainerFollow,
@@ -95,7 +96,7 @@ def index():
         elif material_filter == "videos":
             query = query.filter(CourseMaterial.material_type == "video")
 
-        materials = query.order_by(CourseMaterial.uploaded_at.desc()).all()
+        materials = query.options(joinedload(CourseMaterial.trainer)).order_by(CourseMaterial.uploaded_at.desc()).all()
         followed_ids = {
             trainer_id for (trainer_id,) in db.session.query(
                 TrainerFollow.trainer_id
@@ -118,12 +119,13 @@ def index():
             activity.material_id for activity in activities
             if activity.activity_type == "like" and activity.material_id
         }
-        engagement = {}
-        for material in materials:
-            engagement[material.id] = sum(
-                1 for activity in material.activities
-                if activity.activity_type in {"watch", "like"}
-            )
+        engagement_rows = db.session.query(
+            UserActivity.material_id, db.func.count(UserActivity.id)
+        ).filter(
+            UserActivity.activity_type.in_(["watch", "like"]),
+            UserActivity.material_id.isnot(None)
+        ).group_by(UserActivity.material_id).all()
+        engagement = dict(engagement_rows)
 
         def recommendation_score(material):
             content_terms = _terms(
@@ -146,15 +148,8 @@ def index():
             ),
             reverse=True
         )
-
-    liked_ids = set()
-    if current_user.is_authenticated:
-        liked_ids = {
-            act.material_id for act in UserActivity.query.filter_by(
-                user_id=current_user.id,
-                activity_type="like"
-            ).filter(UserActivity.material_id.isnot(None)).all()
-        }
+    else:
+        liked_ids = set()
 
     return render_template(
         "index.html",
@@ -165,6 +160,9 @@ def index():
         search_query=search_query,
         liked_ids=liked_ids
     )
+
+
+_admin_stats_cache = {"timestamp": 0, "stats": None}
 
 
 @bp.route("/dashboard")
@@ -252,21 +250,27 @@ def dashboard():
 
     else:
         # Admin and Super Admin
-        stats_row = db.session.execute(text("""
-            SELECT 
-                (SELECT COUNT(*) FROM course_material),
-                (SELECT COUNT(*) FROM user WHERE role = 'trainer'),
-                (SELECT COUNT(*) FROM user WHERE role = 'trainee'),
-                (SELECT COUNT(*) FROM user),
-                (SELECT COUNT(*) FROM course)
-        """)).fetchone()
-        stats = {
-            "materials": stats_row[0] if stats_row else 0,
-            "trainers": stats_row[1] if stats_row else 0,
-            "trainees": stats_row[2] if stats_row else 0,
-            "users": stats_row[3] if stats_row else 0,
-            "courses": stats_row[4] if stats_row else 0,
-        }
+        now = datetime.utcnow().timestamp()
+        if _admin_stats_cache["stats"] and (now - _admin_stats_cache["timestamp"] < 60):
+            stats = _admin_stats_cache["stats"]
+        else:
+            stats_row = db.session.execute(text("""
+                SELECT 
+                    (SELECT COUNT(*) FROM course_material),
+                    (SELECT COUNT(*) FROM user WHERE role = 'trainer'),
+                    (SELECT COUNT(*) FROM user WHERE role = 'trainee'),
+                    (SELECT COUNT(*) FROM user),
+                    (SELECT COUNT(*) FROM course)
+            """)).fetchone()
+            stats = {
+                "materials": stats_row[0] if stats_row else 0,
+                "trainers": stats_row[1] if stats_row else 0,
+                "trainees": stats_row[2] if stats_row else 0,
+                "users": stats_row[3] if stats_row else 0,
+                "courses": stats_row[4] if stats_row else 0,
+            }
+            _admin_stats_cache["timestamp"] = now
+            _admin_stats_cache["stats"] = stats
 
     return render_template(
         "dashboard.html",
@@ -304,7 +308,7 @@ def explore_courses():
     if not current_user.is_authenticated:
         return redirect(url_for("auth.login"))
 
-    courses = Course.query.order_by(Course.created_at.desc()).all()
+    courses = Course.query.options(joinedload(Course.trainer)).order_by(Course.created_at.desc()).all()
     enrolled_course_ids = set()
     if current_user.role == "trainee":
         enrolled_course_ids = {

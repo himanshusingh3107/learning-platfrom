@@ -81,6 +81,14 @@ class User(db.Model):
             return True
         return False
 
+    @property
+    def unread_notifications_count(self):
+        from flask import g
+        if not hasattr(g, "_unread_notifications_count"):
+            from app.models import Notification
+            g._unread_notifications_count = Notification.query.filter_by(user_id=self.id, is_read=False).count()
+        return g._unread_notifications_count
+
 
 @event.listens_for(User, "before_insert")
 def assign_user_code(mapper, connection, user):

@@ -64,6 +64,8 @@ def create_app():
             "frame-ancestors 'self'; "
             "form-action 'self';"
         )
+        if request.path.startswith("/static/"):
+            response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
         return response
 
     # Import routes
