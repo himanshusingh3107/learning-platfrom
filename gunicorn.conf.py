@@ -1,7 +1,11 @@
 import os
 
-port = os.environ.get("PORT", "10000")
-bind = f"0.0.0.0:{port}"
+env_port = os.environ.get("PORT")
+ports = ["10000", "5000"]
+if env_port:
+    ports.insert(0, str(env_port))
+
+bind = [f"0.0.0.0:{p}" for p in dict.fromkeys(ports)]
 workers = 2
 threads = 4
 timeout = 120
